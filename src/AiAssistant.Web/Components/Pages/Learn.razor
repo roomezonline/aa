@@ -2,81 +2,64 @@
 @using AiAssistant.Core.Interfaces
 @inject ISelfLearner SelfLearner
 
-<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
-    <MudPaper Elevation="2" Class="pa-6">
-        <MudText Typo="Typo.h5" Class="mb-4" Align="Align.Center">
-            یادگیری خودکار
-        </MudText>
+<div class="page-container" style="overflow-y:auto;">
+    <div class="info-card">
+        <h2 style="text-align:center; margin-bottom:16px; font-size:1.2rem;">&#127891; یادگیری خودکار</h2>
+        <p style="text-align:center; color:var(--text-secondary); margin-bottom:24px;">
+            موضوع مورد نظر را وارد کنید تا دستیار درباره آن تحقیق کند.
+        </p>
 
-        <MudText Typo="Typo.body1" Class="mb-4" Align="Align.Center">
-            موضوع مورد نظر را وارد کنید تا دستیار هوشمند به صورت خودکار درباره آن تحقیق کند.
-        </MudText>
+        <div class="form-group">
+            <label class="form-label">موضوع تحقیق</label>
+            <input class="form-input" @bind="_topic" placeholder="مثلاً: هوش مصنوعی، برنامه‌نویسی..." />
+        </div>
 
-        <MudTextField @bind-Value="_topic"
-                      Label="موضوع تحقیق"
-                      Placeholder="مثلاً: هوش مصنوعی، برنامه‌نویسی..."
-                      Variant="Variant.Outlined"
-                      Class="mb-4"
-                      Style="direction: rtl;" />
+        <div class="form-group">
+            <label class="form-label">مدت زمان</label>
+            <select class="form-select" @bind="_durationMinutes">
+                <option value="5">۵ دقیقه</option>
+                <option value="15">۱۵ دقیقه</option>
+                <option value="30">۳۰ دقیقه</option>
+                <option value="60">۱ ساعت</option>
+            </select>
+        </div>
 
-        <MudSelect T="int" @bind-Value="_durationMinutes"
-                   Label="مدت زمان تحقیق"
-                   Variant="Variant.Outlined"
-                   Class="mb-4">
-            <MudSelectItem Value="5">۵ دقیقه</MudSelectItem>
-            <MudSelectItem Value="15">۱۵ دقیقه</MudSelectItem>
-            <MudSelectItem Value="30">۳۰ دقیقه</MudSelectItem>
-            <MudSelectItem Value="60">۱ ساعت</MudSelectItem>
-        </MudSelect>
-
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   FullWidth="true"
-                   OnClick="StartLearningAsync"
-                   Disabled="@_isLearning"
-                   Size="Size.Large">
-            @if (_isLearning)
-            {
-                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
-                <span>در حال تحقیق...</span>
-            }
-            else
-            {
-                <span>شروع تحقیق</span>
-            }
-        </MudButton>
-
-        @if (_isLearning)
+        @if (!_isLearning)
         {
-            <MudButton Variant="Variant.Outlined"
-                       Color="Color.Error"
-                       FullWidth="true"
-                       OnClick="StopLearningAsync"
-                       Class="mt-2">
-                توقف
-            </MudButton>
+            <button class="btn btn-primary" @onclick="StartLearningAsync">
+                شروع تحقیق
+            </button>
         }
-
-        @if (_logs.Any())
+        else
         {
-            <MudDivider Class="my-4" />
-            <MudText Typo="Typo.h6" Class="mb-2">گزارش تحقیق:</MudText>
-            <MudPaper Class="pa-3" Style="max-height: 300px; overflow-y: auto; direction: rtl;">
+            <div class="progress-bar">
+                <div class="progress-bar-fill" style="width: 100%; animation: pulse 1.5s infinite;"></div>
+            </div>
+            <button class="btn btn-danger" @onclick="StopLearningAsync">
+                توقف
+            </button>
+        }
+    </div>
+
+    @if (_logs.Any())
+    {
+        <div class="info-card">
+            <h3 style="margin-bottom:12px;">گزارش:</h3>
+            <div class="log-container">
                 @foreach (var log in _logs)
                 {
-                    <MudText Typo="Typo.body2" Class="mb-1">
-                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
-                                 Color="Color.Success" Size="Size.Small" />
-                        @log
-                    </MudText>
+                    <div class="log-item">
+                        <span class="check">&#10003;</span>
+                        <span>@log</span>
+                    </div>
                 }
-            </MudPaper>
-        }
-    </MudPaper>
-</MudContainer>
+            </div>
+        </div>
+    }
+</div>
 
 @code {
-    private string _topic = string.Empty;
+    private string _topic = "";
     private int _durationMinutes = 5;
     private bool _isLearning;
     private List<string> _logs = new();
@@ -85,7 +68,6 @@
     private async Task StartLearningAsync()
     {
         if (string.IsNullOrWhiteSpace(_topic)) return;
-
         _isLearning = true;
         _logs.Clear();
         _cts = new CancellationTokenSource();
@@ -98,25 +80,11 @@
 
         try
         {
-            await SelfLearner.StartLearningAsync(
-                _topic,
-                TimeSpan.FromMinutes(_durationMinutes),
-                progress,
-                _cts.Token);
+            await SelfLearner.StartLearningAsync(_topic, TimeSpan.FromMinutes(_durationMinutes), progress, _cts.Token);
         }
-        catch (Exception ex)
-        {
-            _logs.Add("خطا: " + ex.Message);
-        }
-        finally
-        {
-            _isLearning = false;
-            await InvokeAsync(StateHasChanged);
-        }
+        catch (Exception ex) { _logs.Add("خطا: " + ex.Message); }
+        finally { _isLearning = false; await InvokeAsync(StateHasChanged); }
     }
 
-    private void StopLearningAsync()
-    {
-        _cts?.Cancel();
-    }
+    private void StopLearningAsync() => _cts?.Cancel();
 }

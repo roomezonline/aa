@@ -2,62 +2,49 @@
 @using AiAssistant.Core.Interfaces
 @inject IKnowledgeBase KnowledgeBase
 
-<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
-    <MudPaper Elevation="2" Class="pa-6">
-        <MudText Typo="Typo.h5" Class="mb-4" Align="Align.Center">
-            تنظیمات
-        </MudText>
+<div class="page-container" style="overflow-y:auto;">
+    <div class="info-card">
+        <h2 style="text-align:center; margin-bottom:20px; font-size:1.2rem;">&#9881; تنظیمات</h2>
 
-        <MudGrid>
-            <MudItem xs="12">
-                <MudText Typo="Typo.h6" Class="mb-2">آمار سیستم</MudText>
-            </MudItem>
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="value">@_knowledgeCount</div>
+                <div class="label">دانش ذخیره شده</div>
+            </div>
+            <div class="stat-card">
+                <div class="value">@_dbSize</div>
+                <div class="label">حجم دیتابیس</div>
+            </div>
+        </div>
+    </div>
 
-            <MudItem xs="6">
-                <MudCard>
-                    <MudCardContent>
-                        <MudText Typo="Typo.h4" Align="Align.Center" Color="Color.Primary">
-                            @_knowledgeCount
-                        </MudText>
-                        <MudText Typo="Typo.body2" Align="Align.Center">
-                            تعداد دانش ذخیره شده
-                        </MudText>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-
-            <MudItem xs="6">
-                <MudCard>
-                    <MudCardContent>
-                        <MudText Typo="Typo.h4" Align="Align.Center" Color="Color.Secondary">
-                            @_dbSize
-                        </MudText>
-                        <MudText Typo="Typo.body2" Align="Align.Center">
-                            حجم دیتابیس
-                        </MudText>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-        </MudGrid>
-
-        <MudDivider Class="my-4" />
-
-        <MudText Typo="Typo.h6" Class="mb-2">اطلاعات اتصال</MudText>
-
-        <MudList T="string">
-            <MudListItem T="string">
-                <MudListItemIcon Icon="@Icons.Material.Filled.Storage" />
-                <MudListItemText Primary="دیتابیس"
-                                 Secondary="SQLite - AiAssistant.db" />
-            </MudListItem>
-            <MudListItem T="string">
-                <MudListItemIcon Icon="@Icons.Material.Filled.Code" />
-                <MudListItemText Primary="نسخه"
-                                 Secondary="1.0.0 - .NET 9" />
-            </MudListItem>
-        </MudList>
-    </MudPaper>
-</MudContainer>
+    <div class="info-card">
+        <h3 style="margin-bottom:16px;">اطلاعات سیستم</h3>
+        <ul class="info-list">
+            <li>
+                <span class="icon">&#128190;</span>
+                <div>
+                    <div class="primary">دیتابیس</div>
+                    <div class="secondary">SQLite - AiAssistant.db</div>
+                </div>
+            </li>
+            <li>
+                <span class="icon">&#128187;</span>
+                <div>
+                    <div class="primary">نسخه</div>
+                    <div class="secondary">1.0.0 - .NET 9</div>
+                </div>
+            </li>
+            <li>
+                <span class="icon">&#129302;</span>
+                <div>
+                    <div class="primary">وضعیت</div>
+                    <div class="secondary">مستقل - بدون وابستگی</div>
+                </div>
+            </li>
+        </ul>
+    </div>
+</div>
 
 @code {
     private int _knowledgeCount;
@@ -66,24 +53,11 @@
     protected override async Task OnInitializedAsync()
     {
         _knowledgeCount = await KnowledgeBase.GetTotalCountAsync();
-
         try
         {
-            var fileInfo = new System.IO.FileInfo("AiAssistant.db");
-            if (fileInfo.Exists)
-            {
-                _dbSize = fileInfo.Length > 1024 * 1024
-                    ? $"{fileInfo.Length / (1024.0 * 1024.0):F1} MB"
-                    : $"{fileInfo.Length / 1024.0:F1} KB";
-            }
-            else
-            {
-                _dbSize = "0 KB";
-            }
+            var fi = new System.IO.FileInfo("AiAssistant.db");
+            _dbSize = fi.Exists ? (fi.Length > 1048576 ? $"{fi.Length / 1048576.0:F1} MB" : $"{fi.Length / 1024.0:F1} KB") : "0 KB";
         }
-        catch
-        {
-            _dbSize = "نامشخص";
-        }
+        catch { _dbSize = "نامشخص"; }
     }
 }

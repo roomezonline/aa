@@ -3,14 +3,11 @@ using AiAssistant.Core.Interfaces;
 using AiAssistant.Infrastructure.Data;
 using AiAssistant.Infrastructure.Services;
 using AiAssistant.Web.Components;
-using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
-
-builder.Services.AddMudServices();
 
 builder.Services.Configure<AiSettings>(
     builder.Configuration.GetSection("AiSettings"));

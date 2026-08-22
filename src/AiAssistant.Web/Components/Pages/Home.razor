@@ -1,55 +1,64 @@
-﻿@page "/"
+@page "/"
 @using AiAssistant.Core.Interfaces
 @using AiAssistant.Core.Models
 @inject IChatService ChatService
-@inject ISearchService SearchService
 @inject IKnowledgeBase KnowledgeBase
 @inject IEmbeddingService EmbeddingService
 @inject IConversationManager ConversationManager
 
-<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
-    <MudPaper Elevation="2" Class="pa-4" Style="height: 75vh; display: flex; flex-direction: column;">
+<div class="page-container">
+    <div class="chat-header">
+        <h2>?? ?? ?????? ??????</h2>
+    </div>
 
-        <MudText Typo="Typo.h5" Class="mb-4" Align="Align.Center">
-            چت با دستیار هوشمند
-        </MudText>
+    <div class="chat-messages" @ref="messagesContainer">
+        @if (!_messages.Any())
+        {
+            <div style="text-align:center; padding:40px 20px; color:var(--text-secondary);">
+                <p style="font-size:2rem; margin-bottom:12px;">&#129302;</p>
+                <p style="font-size:1rem;">????! ?? ?????? ??? ?????? ??? ????.</p>
+                <p style="font-size:0.9rem; margin-top:8px;">?? ????? ????? ??????.</p>
+            </div>
+        }
 
-        <div style="flex: 1; overflow-y: auto; direction: rtl; padding: 8px;">
-            @foreach (var msg in _messages)
-            {
-                <div class="chat-row @(msg.IsUser ? "chat-row-user" : "chat-row-ai")">
-                    <div class="chat-bubble @(msg.IsUser ? "chat-bubble-user" : "chat-bubble-ai")">
-                        @if (msg.IsLoading)
-                        {
-                            <MudProgressCircular Size="Size.Small" Indeterminate="true" />
-                        }
-                        else
-                        {
-                            @((MarkupString)FormatMessage(msg.Content))
-                        }
-                    </div>
+        @foreach (var msg in _messages)
+        {
+            <div class="chat-row @(msg.IsUser ? "chat-row-user" : "chat-row-ai")">
+                <div class="chat-bubble @(msg.IsUser ? "chat-bubble-user" : "chat-bubble-ai")">
+                    @if (msg.IsLoading)
+                    {
+                        <div class="loading-dots">
+                            <span></span><span></span><span></span>
+                        </div>
+                    }
+                    else
+                    {
+                        @((MarkupString)FormatMessage(msg.Content))
+                    }
                 </div>
-            }
-        </div>
+            </div>
+        }
+    </div>
 
-        <MudDivider Class="my-2" />
-
-        <div class="d-flex gap-2">
-            <MudTextField @bind-Value="_userInput"
-                          Placeholder="سوال خود را بنویسید..."
-                          Variant="Variant.Outlined"
-                          Adornment="Adornment.End"
-                          AdornmentIcon="@Icons.Material.Filled.Send"
-                          OnAdornmentClick="SendMessageAsync"
-                          OnKeyDown="HandleKeyDown"
-                          Disabled="@_isLoading"
-                          Lines="2"
-                          Style="direction: rtl;" />
+    <div class="chat-input">
+        <div class="input-wrapper">
+            <textarea @ref="inputRef"
+                      @bind="_userInput"
+                      @bind:event="oninput"
+                      placeholder="???? ??? ?? ???????..."
+                      rows="1"
+                      @onkeydown="HandleKeyDown"
+                      disabled="@_isLoading"></textarea>
+            <button class="send-btn" @onclick="SendMessageAsync" disabled="@_isLoading || string.IsNullOrWhiteSpace(_userInput)">
+                &#10148;
+            </button>
         </div>
-    </MudPaper>
-</MudContainer>
+    </div>
+</div>
 
 @code {
+    private ElementReference messagesContainer;
+    private ElementReference inputRef;
     private string _userInput = string.Empty;
     private bool _isLoading;
     private string _conversationId = string.Empty;
@@ -67,79 +76,69 @@
         var userMessage = _userInput.Trim();
         _userInput = string.Empty;
 
-        _messages.Add(new ChatMessageDisplay
-        {
-            Content = userMessage,
-            IsUser = true,
-            IsLoading = false
-        });
+        _messages.Add(new ChatMessageDisplay { Content = userMessage, IsUser = true });
 
         _isLoading = true;
         StateHasChanged();
 
-        var loadingMsg = new ChatMessageDisplay
-        {
-            Content = "",
-            IsUser = false,
-            IsLoading = true
-        };
+        var loadingMsg = new ChatMessageDisplay { Content = "", IsUser = false, IsLoading = true };
         _messages.Add(loadingMsg);
 
         try
         {
-            var responseBuilder = new System.Text.StringBuilder();
-
-            await foreach (var token in ChatService.StreamChatAsync(
-                userMessage, _conversationId))
+            var sb = new System.Text.StringBuilder();
+            await foreach (var token in ChatService.StreamChatAsync(userMessage, _conversationId))
             {
-                responseBuilder.Append(token);
-                loadingMsg.Content = responseBuilder.ToString();
+                sb.Append(token);
+                loadingMsg.Content = sb.ToString();
                 loadingMsg.IsLoading = false;
                 StateHasChanged();
+                await ScrollToBottom();
             }
 
-            var finalResponse = responseBuilder.ToString();
-            loadingMsg.Content = finalResponse;
-            loadingMsg.IsLoading = false;
+            loadingMsg.Content = sb.ToString();
 
-            await SaveKnowledgeAsync(userMessage, finalResponse);
+            try
+            {
+                var embedding = await EmbeddingService.GetEmbeddingAsync(userMessage);
+                await KnowledgeBase.SaveAsync(new KnowledgeEntry
+                {
+                    Question = userMessage,
+                    Answer = loadingMsg.Content,
+                    Source = "chat",
+                    Embedding = embedding,
+                    Confidence = 0.9,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            catch { }
         }
         catch (Exception ex)
         {
-            loadingMsg.Content = "خطا: " + ex.Message;
+            loadingMsg.Content = "???: " + ex.Message;
             loadingMsg.IsLoading = false;
         }
         finally
         {
             _isLoading = false;
             StateHasChanged();
+            await ScrollToBottom();
         }
-    }
-
-    private async Task SaveKnowledgeAsync(string question, string answer)
-    {
-        try
-        {
-            var embedding = await EmbeddingService.GetEmbeddingAsync(question);
-            await KnowledgeBase.SaveAsync(new KnowledgeEntry
-            {
-                Question = question,
-                Answer = answer,
-                Source = "chat",
-                Embedding = embedding,
-                Confidence = 0.9,
-                CreatedAt = DateTime.UtcNow
-            });
-        }
-        catch { }
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Enter" && !e.ShiftKey)
         {
+
             await SendMessageAsync();
         }
+    }
+
+    private async Task ScrollToBottom()
+    {
+        await Task.Delay(50);
+        await JS.InvokeVoidAsync("eval", "document.querySelector('.chat-messages').scrollTop = document.querySelector('.chat-messages').scrollHeight");
     }
 
     private string FormatMessage(string content)
@@ -148,9 +147,11 @@
         return Markdig.Markdown.ToHtml(content, pipeline);
     }
 
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
     private class ChatMessageDisplay
     {
-        public string Content { get; set; } = string.Empty;
+        public string Content { get; set; } = "";
         public bool IsUser { get; set; }
         public bool IsLoading { get; set; }
     }

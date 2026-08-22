@@ -4,93 +4,61 @@
 @inject IKnowledgeBase KnowledgeBase
 @inject IEmbeddingService EmbeddingService
 
-<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
-    <MudPaper Elevation="2" Class="pa-6">
-        <MudText Typo="Typo.h5" Class="mb-4" Align="Align.Center">
-            پایگاه دانش
-        </MudText>
+<div class="page-container" style="overflow-y:auto;">
+    <div class="info-card">
+        <h2 style="text-align:center; margin-bottom:16px; font-size:1.2rem;">&#128218; پایگاه دانش</h2>
 
-        <MudTextField @bind-Value="_searchQuery"
-                      Label="جستجو در دانش"
-                      Placeholder="کلمه کلیدی را وارد کنید..."
-                      Variant="Variant.Outlined"
-                      Adornment="Adornment.End"
-                      AdornmentIcon="@Icons.Material.Filled.Search"
-                      OnAdornmentClick="SearchKnowledgeAsync"
-                      OnKeyDown="HandleSearchKeyDown"
-                      Class="mb-4"
-                      Style="direction: rtl;" />
+        <div class="input-wrapper" style="margin-bottom:16px;">
+            <input class="form-input" style="border:none;" @bind="_searchQuery"
+                   placeholder="جستجو..." @onkeydown="HandleKeyDown" />
+            <button class="send-btn" @onclick="SearchAsync">&#128269;</button>
+        </div>
 
         @if (_isLoading)
         {
-            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            <div class="progress-bar"><div class="progress-bar-fill" style="width:100%;"></div></div>
         }
+    </div>
 
-        @if (_results.Any())
+    @if (_results.Any())
+    {
+        <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:12px;">@_results.Count نتیجه</p>
+        @foreach (var item in _results)
         {
-            <MudText Typo="Typo.body2" Class="mb-2">
-                @_results.Count نتیجه یافت شد
-            </MudText>
-
-            @foreach (var item in _results)
-            {
-                <MudCard Class="mb-3">
-                    <MudCardContent>
-                        <MudText Typo="Typo.subtitle1" Color="Color.Primary">
-                            @item.Question
-                        </MudText>
-                        <MudText Typo="Typo.body2" Class="mt-2">
-                            @item.Answer
-                        </MudText>
-                        <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Class="mt-2">
-                            @item.Source
-                        </MudChip>
-                    </MudCardContent>
-                </MudCard>
-            }
+            <div class="knowledge-card">
+                <h3>@item.Question</h3>
+                <p>@item.Answer</p>
+                <span class="chip chip-primary">@item.Source</span>
+            </div>
         }
-        else if (!string.IsNullOrWhiteSpace(_searchQuery) && !_isLoading)
-        {
-            <MudText Typo="Typo.body1" Align="Align.Center" Class="mt-4">
-                نتیجه‌ای یافت نشد
-            </MudText>
-        }
-    </MudPaper>
-</MudContainer>
+    }
+    else if (!string.IsNullOrWhiteSpace(_searchQuery) && !_isLoading)
+    {
+        <div class="info-card" style="text-align:center; color:var(--text-secondary);">نتیجه‌ای یافت نشد</div>
+    }
+</div>
 
 @code {
-    private string _searchQuery = string.Empty;
+    private string _searchQuery = "";
     private bool _isLoading;
     private List<KnowledgeEntry> _results = new();
 
-    private async Task SearchKnowledgeAsync()
+    private async Task SearchAsync()
     {
         if (string.IsNullOrWhiteSpace(_searchQuery)) return;
-
         _isLoading = true;
         StateHasChanged();
-
         try
         {
             var embedding = await EmbeddingService.GetEmbeddingAsync(_searchQuery);
             _results = await KnowledgeBase.SearchAsync(_searchQuery, embedding, 20);
         }
-        catch
-        {
-            _results.Clear();
-        }
-        finally
-        {
-            _isLoading = false;
-            StateHasChanged();
-        }
+        catch { _results.Clear(); }
+        finally { _isLoading = false; StateHasChanged(); }
     }
 
-    private async Task HandleSearchKeyDown(KeyboardEventArgs e)
+    private async Task HandleKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter")
-        {
-            await SearchKnowledgeAsync();
-        }
+        if (e.Key == "Enter") await SearchAsync();
     }
 }
