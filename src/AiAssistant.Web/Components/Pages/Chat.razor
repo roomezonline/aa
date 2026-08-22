@@ -1,0 +1,158 @@
+@page "/"
+
+@using AiAssistant.Core.Interfaces
+@using AiAssistant.Core.Models
+@inject IChatService ChatService
+@inject ISearchService SearchService
+@inject IKnowledgeBase KnowledgeBase
+@inject IEmbeddingService EmbeddingService
+@inject IConversationManager ConversationManager
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+    <MudPaper Elevation="2" Class="pa-4" Style="height: 75vh; display: flex; flex-direction: column;">
+        
+        <MudText Typo="Typo.h5" Class="mb-4" Align="Align.Center">
+            چت با دستیار هوشمند
+        </MudText>
+
+        <div style="flex: 1; overflow-y: auto; direction: rtl; padding: 8px;" id="chatContainer">
+            @foreach (var msg in _messages)
+            {
+                <div class="chat-row @(msg.IsUser ? "chat-row-user" : "chat-row-ai")">
+                    <div class="chat-bubble @(msg.IsUser ? "chat-bubble-user" : "chat-bubble-ai")">
+                        @if (msg.IsLoading)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                        }
+                        else
+                        {
+                            @((MarkupString)FormatMessage(msg.Content))
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <MudDivider Class="my-2" />
+
+        <div class="d-flex gap-2">
+            <MudTextField @bind-Value="_userInput"
+                          Placeholder="سوال خود را بنویسید..."
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.End"
+                          AdornmentIcon="@Icons.Material.Filled.Send"
+                          OnAdornmentClick="SendMessageAsync"
+                          OnKeyDown="HandleKeyDown"
+                          Disabled="@_isLoading"
+                          Lines="2"
+                          Style="direction: rtl;" />
+        </div>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private string _userInput = string.Empty;
+    private bool _isLoading;
+    private string _conversationId = string.Empty;
+    private List<ChatMessageDisplay> _messages = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _conversationId = await ConversationManager.CreateConversationAsync();
+    }
+
+    private async Task SendMessageAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_userInput) || _isLoading) return;
+
+        var userMessage = _userInput.Trim();
+        _userInput = string.Empty;
+
+        _messages.Add(new ChatMessageDisplay
+        {
+            Content = userMessage,
+            IsUser = true,
+            IsLoading = false
+        });
+
+        _isLoading = true;
+        StateHasChanged();
+
+        var loadingMsg = new ChatMessageDisplay
+        {
+            Content = "",
+            IsUser = false,
+            IsLoading = true
+        };
+        _messages.Add(loadingMsg);
+
+        try
+        {
+            var responseBuilder = new System.Text.StringBuilder();
+            
+            await foreach (var token in ChatService.StreamChatAsync(
+                userMessage, _conversationId))
+            {
+                responseBuilder.Append(token);
+                loadingMsg.Content = responseBuilder.ToString();
+                loadingMsg.IsLoading = false;
+                StateHasChanged();
+            }
+
+            var finalResponse = responseBuilder.ToString();
+            loadingMsg.Content = finalResponse;
+            loadingMsg.IsLoading = false;
+
+            await SaveKnowledgeAsync(userMessage, finalResponse);
+        }
+        catch (Exception ex)
+        {
+            loadingMsg.Content = "خطا: " + ex.Message;
+            loadingMsg.IsLoading = false;
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SaveKnowledgeAsync(string question, string answer)
+    {
+        try
+        {
+            var embedding = await EmbeddingService.GetEmbeddingAsync(question);
+            await KnowledgeBase.SaveAsync(new KnowledgeEntry
+            {
+                Question = question,
+                Answer = answer,
+                Source = "chat",
+                Embedding = embedding,
+                Confidence = 0.9,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+        catch { }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            await SendMessageAsync();
+        }
+    }
+
+    private string FormatMessage(string content)
+    {
+        var pipeline = new Markdig.MarkdownPipelineBuilder().Build();
+        return Markdig.Markdown.ToHtml(content, pipeline);
+    }
+
+    private class ChatMessageDisplay
+    {
+        public string Content { get; set; } = string.Empty;
+        public bool IsUser { get; set; }
+        public bool IsLoading { get; set; }
+    }
+}

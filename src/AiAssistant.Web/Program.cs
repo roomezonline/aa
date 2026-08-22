@@ -1,0 +1,71 @@
+using AiAssistant.Core.Configuration;
+using AiAssistant.Core.Interfaces;
+using AiAssistant.Infrastructure.Data;
+using AiAssistant.Infrastructure.Services;
+using AiAssistant.Web.Components;
+using MudBlazor.Services;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
+
+builder.Services.AddMudServices();
+
+builder.Services.Configure<AiSettings>(
+    builder.Configuration.GetSection("AiSettings"));
+
+var settings = builder.Configuration
+    .GetSection("AiSettings")
+    .Get<AiSettings>() ?? new AiSettings();
+
+builder.Services.AddHttpClient<OllamaChatService>(client =>
+{
+    client.BaseAddress = new Uri(settings.OllamaBaseUrl);
+    client.Timeout = TimeSpan.FromMinutes(5);
+});
+
+builder.Services.AddHttpClient<OllamaEmbeddingService>(client =>
+{
+    client.BaseAddress = new Uri(settings.OllamaBaseUrl);
+    client.Timeout = TimeSpan.FromMinutes(2);
+});
+
+builder.Services.AddHttpClient<WebSearchService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+builder.Services.AddScoped<AppDbContext>(_ => new AppDbContext(settings.DatabasePath));
+builder.Services.AddScoped<Func<AppDbContext>>(sp => () => sp.GetRequiredService<AppDbContext>());
+
+builder.Services.AddScoped<IConversationManager, ConversationService>();
+builder.Services.AddScoped<IChatService, OllamaChatService>();
+builder.Services.AddScoped<IEmbeddingService, OllamaEmbeddingService>();
+builder.Services.AddScoped<ISearchService, WebSearchService>();
+builder.Services.AddScoped<IVectorStore>(sp => new SqliteVectorStore(settings.DatabasePath));
+builder.Services.AddScoped<IKnowledgeBase, KnowledgeService>();
+builder.Services.AddScoped<ISelfLearner, SelfLearnerService>();
+
+var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    context.Database.EnsureCreated();
+}
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Error");
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+app.UseAntiforgery();
+
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode();
+
+app.Run();

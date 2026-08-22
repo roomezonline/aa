@@ -1,0 +1,41 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{25D0AF30-EF71-4E7F-9886-DB15F240473A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AiAssistant.Core", "src\AiAssistant.Core\AiAssistant.Core.csproj", "{E2E256C5-330F-47D6-BE53-E283FC080FC8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AiAssistant.Infrastructure", "src\AiAssistant.Infrastructure\AiAssistant.Infrastructure.csproj", "{DE84240D-14D7-447F-A311-4FE7BC604A5C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AiAssistant.Web", "src\AiAssistant.Web\AiAssistant.Web.csproj", "{8953A242-A939-4ECA-B7AB-1F50988E82BE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E2E256C5-330F-47D6-BE53-E283FC080FC8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E2E256C5-330F-47D6-BE53-E283FC080FC8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E2E256C5-330F-47D6-BE53-E283FC080FC8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E2E256C5-330F-47D6-BE53-E283FC080FC8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DE84240D-14D7-447F-A311-4FE7BC604A5C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DE84240D-14D7-447F-A311-4FE7BC604A5C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DE84240D-14D7-447F-A311-4FE7BC604A5C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DE84240D-14D7-447F-A311-4FE7BC604A5C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8953A242-A939-4ECA-B7AB-1F50988E82BE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8953A242-A939-4ECA-B7AB-1F50988E82BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8953A242-A939-4ECA-B7AB-1F50988E82BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8953A242-A939-4ECA-B7AB-1F50988E82BE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{E2E256C5-330F-47D6-BE53-E283FC080FC8} = {25D0AF30-EF71-4E7F-9886-DB15F240473A}
+		{DE84240D-14D7-447F-A311-4FE7BC604A5C} = {25D0AF30-EF71-4E7F-9886-DB15F240473A}
+		{8953A242-A939-4ECA-B7AB-1F50988E82BE} = {25D0AF30-EF71-4E7F-9886-DB15F240473A}
+	EndGlobalSection
+EndGlobal

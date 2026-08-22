@@ -1,0 +1,47 @@
+@inherits LayoutComponentBase
+
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1" Color="Color.Primary">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" 
+                       OnClick="ToggleDrawer" />
+        <MudText Typo="Typo.h6">دستیار هوش مصنوعی</MudText>
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Inherit"
+                       Href="/settings" />
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+        <MudNavMenu>
+            <MudNavLink Href="/" Icon="@Icons.Material.Filled.Chat" Match="NavLinkMatch.All">
+                چت
+            </MudNavLink>
+            <MudNavLink Href="/learn" Icon="@Icons.Material.Filled.School">
+                یادگیری خودکار
+            </MudNavLink>
+            <MudNavLink Href="/knowledge" Icon="@Icons.Material.Filled.LibraryBooks">
+                پایگاه دانش
+            </MudNavLink>
+            <MudNavLink Href="/settings" Icon="@Icons.Material.Filled.Settings">
+                تنظیمات
+            </MudNavLink>
+        </MudNavMenu>
+    </MudDrawer>
+
+    <MudMainContent Class="pa-4">
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+
+    private void ToggleDrawer()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+}
