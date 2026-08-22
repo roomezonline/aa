@@ -1,5 +1,4 @@
-@page "/"
-
+﻿@page "/"
 @using AiAssistant.Core.Interfaces
 @using AiAssistant.Core.Models
 @inject IChatService ChatService
@@ -10,12 +9,12 @@
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
     <MudPaper Elevation="2" Class="pa-4" Style="height: 75vh; display: flex; flex-direction: column;">
-        
+
         <MudText Typo="Typo.h5" Class="mb-4" Align="Align.Center">
             چت با دستیار هوشمند
         </MudText>
 
-        <div style="flex: 1; overflow-y: auto; direction: rtl; padding: 8px;" id="chatContainer">
+        <div style="flex: 1; overflow-y: auto; direction: rtl; padding: 8px;">
             @foreach (var msg in _messages)
             {
                 <div class="chat-row @(msg.IsUser ? "chat-row-user" : "chat-row-ai")">
@@ -89,7 +88,7 @@
         try
         {
             var responseBuilder = new System.Text.StringBuilder();
-            
+
             await foreach (var token in ChatService.StreamChatAsync(
                 userMessage, _conversationId))
             {

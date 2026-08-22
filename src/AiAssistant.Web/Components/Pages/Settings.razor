@@ -1,6 +1,4 @@
-@page "/settings"
-
-@using AiAssistant.Core.Configuration
+﻿@page "/settings"
 @using AiAssistant.Core.Interfaces
 @inject IKnowledgeBase KnowledgeBase
 
@@ -14,7 +12,7 @@
             <MudItem xs="12">
                 <MudText Typo="Typo.h6" Class="mb-2">آمار سیستم</MudText>
             </MudItem>
-            
+
             <MudItem xs="6">
                 <MudCard>
                     <MudCardContent>
@@ -45,37 +43,19 @@
         <MudDivider Class="my-4" />
 
         <MudText Typo="Typo.h6" Class="mb-2">اطلاعات اتصال</MudText>
-        
+
         <MudList T="string">
             <MudListItem T="string">
-                <MudListItemIcon Icon="@Icons.Material.Filled.Memory" />
-                <MudListItemText Primary="Ollama Server" 
-                                 Secondary="http://localhost:11434" />
-            </MudListItem>
-            <MudListItem T="string">
                 <MudListItemIcon Icon="@Icons.Material.Filled.Storage" />
-                <MudListItemText Primary="دیتابیس" 
+                <MudListItemText Primary="دیتابیس"
                                  Secondary="SQLite - AiAssistant.db" />
             </MudListItem>
             <MudListItem T="string">
                 <MudListItemIcon Icon="@Icons.Material.Filled.Code" />
-                <MudListItemText Primary="نسخه" 
+                <MudListItemText Primary="نسخه"
                                  Secondary="1.0.0 - .NET 9" />
             </MudListItem>
         </MudList>
-
-        <MudDivider Class="my-4" />
-
-        <MudText Typo="Typo.h6" Class="mb-2">راهنما</MudText>
-        <MudText Typo="Typo.body2" Class="mb-2">
-            ۱. Ollama را نصب کنید: https://ollama.com
-        </MudText>
-        <MudText Typo="Typo.body2" Class="mb-2">
-            ۲. مدل را دانلود کنید: ollama pull llama3.2
-        </MudText>
-        <MudText Typo="Typo.body2" Class="mb-2">
-            ۳. سرور Ollama را اجرا کنید: ollama serve
-        </MudText>
     </MudPaper>
 </MudContainer>
 
@@ -86,7 +66,7 @@
     protected override async Task OnInitializedAsync()
     {
         _knowledgeCount = await KnowledgeBase.GetTotalCountAsync();
-        
+
         try
         {
             var fileInfo = new System.IO.FileInfo("AiAssistant.db");

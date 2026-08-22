@@ -1,12 +1,11 @@
-@page "/learn"
-
+﻿@page "/learn"
 @using AiAssistant.Core.Interfaces
 @inject ISelfLearner SelfLearner
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
     <MudPaper Elevation="2" Class="pa-6">
         <MudText Typo="Typo.h5" Class="mb-4" Align="Align.Center">
-            يادگيري خودکار
+            یادگیری خودکار
         </MudText>
 
         <MudText Typo="Typo.body1" Class="mb-4" Align="Align.Center">
@@ -15,7 +14,7 @@
 
         <MudTextField @bind-Value="_topic"
                       Label="موضوع تحقیق"
-                      Placeholder="مثلاً: هوش مصنوعی، برنامه‌نویسی، علم داده..."
+                      Placeholder="مثلاً: هوش مصنوعی، برنامه‌نویسی..."
                       Variant="Variant.Outlined"
                       Class="mb-4"
                       Style="direction: rtl;" />
@@ -28,7 +27,6 @@
             <MudSelectItem Value="15">۱۵ دقیقه</MudSelectItem>
             <MudSelectItem Value="30">۳۰ دقیقه</MudSelectItem>
             <MudSelectItem Value="60">۱ ساعت</MudSelectItem>
-            <MudSelectItem Value="120">۲ ساعت</MudSelectItem>
         </MudSelect>
 
         <MudButton Variant="Variant.Filled"
@@ -67,7 +65,7 @@
                 @foreach (var log in _logs)
                 {
                     <MudText Typo="Typo.body2" Class="mb-1">
-                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" 
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
                                  Color="Color.Success" Size="Size.Small" />
                         @log
                     </MudText>

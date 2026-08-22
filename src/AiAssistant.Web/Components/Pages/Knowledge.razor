@@ -1,5 +1,4 @@
-@page "/knowledge"
-
+﻿@page "/knowledge"
 @using AiAssistant.Core.Interfaces
 @using AiAssistant.Core.Models
 @inject IKnowledgeBase KnowledgeBase
@@ -45,9 +44,6 @@
                         </MudText>
                         <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Class="mt-2">
                             @item.Source
-                        </MudChip>
-                        <MudChip T="string" Size="Size.Small" Color="Color.Default">
-                            @item.UseCount استفاده
                         </MudChip>
                     </MudCardContent>
                 </MudCard>

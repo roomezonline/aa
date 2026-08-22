@@ -1,13 +1,9 @@
-html, body {
+﻿html, body {
     font-family: 'Vazirmatn', sans-serif;
     direction: rtl;
     margin: 0;
     padding: 0;
     background-color: #fafafa;
-}
-
-#chat-container {
-    scroll-behavior: smooth;
 }
 
 .chat-row {
@@ -36,12 +32,4 @@ html, body {
 
 .chat-bubble-ai {
     background-color: #f5f5f5;
-}
-
-.mud-appbar {
-    direction: rtl;
-}
-
-.mud-nav-menu {
-    direction: rtl;
 }
