@@ -19,18 +19,6 @@ var settings = builder.Configuration
     .GetSection("AiSettings")
     .Get<AiSettings>() ?? new AiSettings();
 
-builder.Services.AddHttpClient<OllamaChatService>(client =>
-{
-    client.BaseAddress = new Uri(settings.OllamaBaseUrl);
-    client.Timeout = TimeSpan.FromMinutes(5);
-});
-
-builder.Services.AddHttpClient<OllamaEmbeddingService>(client =>
-{
-    client.BaseAddress = new Uri(settings.OllamaBaseUrl);
-    client.Timeout = TimeSpan.FromMinutes(2);
-});
-
 builder.Services.AddHttpClient<WebSearchService>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(30);
@@ -40,11 +28,11 @@ builder.Services.AddScoped<AppDbContext>(_ => new AppDbContext(settings.Database
 builder.Services.AddScoped<Func<AppDbContext>>(sp => () => sp.GetRequiredService<AppDbContext>());
 
 builder.Services.AddScoped<IConversationManager, ConversationService>();
-builder.Services.AddScoped<IChatService, OllamaChatService>();
-builder.Services.AddScoped<IEmbeddingService, OllamaEmbeddingService>();
+builder.Services.AddScoped<IEmbeddingService, SimpleEmbeddingService>();
 builder.Services.AddScoped<ISearchService, WebSearchService>();
 builder.Services.AddScoped<IVectorStore>(sp => new SqliteVectorStore(settings.DatabasePath));
 builder.Services.AddScoped<IKnowledgeBase, KnowledgeService>();
+builder.Services.AddScoped<IChatService, LocalAiEngine>();
 builder.Services.AddScoped<ISelfLearner, SelfLearnerService>();
 
 var app = builder.Build();
