@@ -64,7 +64,7 @@
                                         <span>@msg.CurrentStatus</span>
                                     </div>
                                 }
-                                @foreach (var item in msg.SearchProgress.TakeLast(6))
+                                @foreach (var item in msg.SearchProgress.TakeLast(8))
                                 {
                                     <div class="search-result-item @(item.StartsWith("q:") ? "is-query" : "is-result")">
                                         @if (item.StartsWith("q:"))
@@ -101,7 +101,38 @@
                     }
                     else
                     {
-                        @((MarkupString)FormatMessage(msg.Content))
+                        @if (msg.SearchProgress.Any())
+                        {
+                            <div class="search-progress done">
+                                <div class="search-done-label">&#128269; :</div>
+                                @foreach (var item in msg.SearchProgress.TakeLast(8))
+                                {
+                                    <div class="search-result-item @(item.StartsWith("q:") ? "is-query" : "is-result")">
+                                        @if (item.StartsWith("q:"))
+                                        {
+                                            <span class="search-icon">&#128269;</span>
+                                            <span>@item.Substring(2)</span>
+                                        }
+                                        else if (item.StartsWith("t:"))
+                                        {
+                                            <span class="result-icon">&#128196;</span>
+                                            <span>@item.Substring(2)</span>
+                                        }
+                                        else if (item.StartsWith("s:"))
+                                        {
+                                            <span class="snippet-text">@item.Substring(2)</span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                            <div class="final-answer">
+                                @((MarkupString)FormatMessage(msg.Content))
+                            </div>
+                        }
+                        else
+                        {
+                            @((MarkupString)FormatMessage(msg.Content))
+                        }
                     }
                 </div>
                 @if (msg.IsLoading && !msg.IsUser)
@@ -273,7 +304,6 @@
 
                 if (!gotFirstToken)
                 {
-                    loadingMsg.SearchProgress.Clear();
                     loadingMsg.CurrentStatus = "";
                     loadingMsg.StatusText = "  ...";
                     StateHasChanged();
@@ -291,7 +321,6 @@
             loadingMsg.Content = sb.ToString();
             loadingMsg.IsLoading = false;
             loadingMsg.CurrentStatus = "";
-            loadingMsg.SearchProgress.Clear();
 
             if (string.IsNullOrWhiteSpace(loadingMsg.Content))
                 loadingMsg.Content = " .";

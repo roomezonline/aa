@@ -468,6 +468,76 @@ html, body {
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* Search Done */
+.search-progress.done {
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    opacity: 0.85;
+}
+
+.search-done-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding: 4px 0 8px 0;
+}
+
+/* Final Answer */
+.final-answer {
+    font-size: 1.05rem;
+    line-height: 1.9;
+    color: var(--text);
+    padding-top: 4px;
+}
+
+.final-answer h1,
+.final-answer h2,
+.final-answer h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin: 12px 0 6px 0;
+}
+
+.final-answer p {
+    margin: 6px 0;
+}
+
+.final-answer ul,
+.final-answer ol {
+    padding-right: 20px;
+    margin: 6px 0;
+}
+
+.final-answer strong {
+    color: var(--primary-dark);
+}
+
+.final-answer code {
+    background: rgba(89, 74, 232, 0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.final-answer pre {
+    background: #1e1e2e;
+    color: #cdd6f4;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+    margin: 8px 0;
+    direction: ltr;
+    text-align: left;
+}
+
+.final-answer pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+}
+
 /* Stop Button */
 .stop-btn {
     width: 32px;
