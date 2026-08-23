@@ -110,8 +110,7 @@ app.UseAuthorization();
 app.MapRazorPages();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode()
-    .AddAdditionalAssemblies(typeof(App).Assembly);
+    .AddInteractiveServerRenderMode();
 
 app.MapPost("/logout", async (SignInManager<IdentityUser> signInManager) =>
 {
