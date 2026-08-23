@@ -28,15 +28,31 @@
                 <div class="chat-bubble @(msg.IsUser ? "chat-bubble-user" : "chat-bubble-ai")">
                     @if (msg.IsLoading)
                     {
-                        <div class="loading-dots">
-                            <span></span><span></span><span></span>
-                        </div>
+                        @if (!string.IsNullOrEmpty(msg.StatusText))
+                        {
+                            <div class="thinking-status">
+                                <div class="thinking-spinner"></div>
+                                <span>@msg.StatusText</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="loading-dots">
+                                <span></span><span></span><span></span>
+                            </div>
+                        }
                     }
                     else
                     {
                         @((MarkupString)FormatMessage(msg.Content))
                     }
                 </div>
+                @if (msg.IsLoading && !msg.IsUser)
+                {
+                    <button class="stop-btn" @onclick="StopGeneration" title="توقف">
+                        &#9632;
+                    </button>
+                }
             </div>
         }
     </div>
@@ -50,9 +66,18 @@
                       rows="1"
                       @onkeydown="HandleKeyDown"
                       disabled="@_isLoading"></textarea>
-            <button class="send-btn" @onclick="SendMessageAsync" disabled="@_isLoading || string.IsNullOrWhiteSpace(_userInput)">
-                &#10148;
-            </button>
+            @if (_isLoading)
+            {
+                <button class="send-btn stop" @onclick="StopGeneration" title="توقف">
+                    &#9632;
+                </button>
+            }
+            else
+            {
+                <button class="send-btn" @onclick="SendMessageAsync" disabled="@_isLoading || string.IsNullOrWhiteSpace(_userInput)">
+                    &#10148;
+                </button>
+            }
         </div>
     </div>
 </div>
@@ -64,6 +89,7 @@
     private bool _isLoading;
     private string _conversationId = string.Empty;
     private List<ChatMessageDisplay> _messages = new();
+    private CancellationTokenSource? _cts;
 
     protected override async Task OnInitializedAsync()
     {
@@ -80,24 +106,54 @@
         _messages.Add(new ChatMessageDisplay { Content = userMessage, IsUser = true });
 
         _isLoading = true;
+        _cts = new CancellationTokenSource();
         StateHasChanged();
 
-        var loadingMsg = new ChatMessageDisplay { Content = "", IsUser = false, IsLoading = true };
+        var loadingMsg = new ChatMessageDisplay
+        {
+            Content = "",
+            IsUser = false,
+            IsLoading = true,
+            StatusText = "در حال فکر کردن..."
+        };
         _messages.Add(loadingMsg);
+
+        await FocusInputAsync();
 
         try
         {
+            UpdateStatus(loadingMsg, "در حال جستجو...");
+            await Task.Delay(100, _cts.Token);
+
             var sb = new System.Text.StringBuilder();
-            await foreach (var token in ChatService.StreamChatAsync(userMessage, _conversationId))
+            bool gotFirstToken = false;
+
+            await foreach (var token in ChatService.StreamChatAsync(userMessage, _conversationId, _cts.Token))
             {
+                if (_cts.Token.IsCancellationRequested) break;
+
+                if (!gotFirstToken)
+                {
+                    loadingMsg.StatusText = "در حال نوشتن...";
+                    StateHasChanged();
+                    gotFirstToken = true;
+                    await Task.Delay(200, _cts.Token);
+                    loadingMsg.StatusText = "";
+                }
+
                 sb.Append(token);
                 loadingMsg.Content = sb.ToString();
-                loadingMsg.IsLoading = false;
                 StateHasChanged();
                 await ScrollToBottom();
             }
 
             loadingMsg.Content = sb.ToString();
+            loadingMsg.IsLoading = false;
+
+            if (string.IsNullOrWhiteSpace(loadingMsg.Content))
+            {
+                loadingMsg.Content = "پاسخی دریافت نشد. لطفاً دوباره تلاش کنید.";
+            }
 
             try
             {
@@ -114,6 +170,18 @@
             }
             catch { }
         }
+        catch (OperationCanceledException)
+        {
+            if (!string.IsNullOrWhiteSpace(loadingMsg.Content))
+            {
+                loadingMsg.Content += "\n\n*توقف داده شد*";
+            }
+            else
+            {
+                loadingMsg.Content = "*توقف داده شد*";
+            }
+            loadingMsg.IsLoading = false;
+        }
         catch (Exception ex)
         {
             loadingMsg.Content = "خطا: " + ex.Message;
@@ -123,13 +191,35 @@
         {
             _isLoading = false;
             StateHasChanged();
+            await FocusInputAsync();
             await ScrollToBottom();
         }
     }
 
+    private void StopGeneration()
+    {
+        _cts?.Cancel();
+    }
+
+    private void UpdateStatus(ChatMessageDisplay msg, string status)
+    {
+        msg.StatusText = status;
+        StateHasChanged();
+    }
+
+    private async Task FocusInputAsync()
+    {
+        await Task.Delay(100);
+        try
+        {
+            await JS.InvokeVoidAsync("eval", "document.querySelector('.chat-input textarea')?.focus()");
+        }
+        catch { }
+    }
+
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter" && !e.ShiftKey)
+        if (e.Key == "Enter" && !e.ShiftKey && !_isLoading)
         {
             await SendMessageAsync();
         }
@@ -138,7 +228,12 @@
     private async Task ScrollToBottom()
     {
         await Task.Delay(50);
-        await JS.InvokeVoidAsync("eval", "document.querySelector('.chat-messages').scrollTop = document.querySelector('.chat-messages').scrollHeight");
+        try
+        {
+            await JS.InvokeVoidAsync("eval",
+                "var c = document.querySelector('.chat-messages'); if(c) c.scrollTop = c.scrollHeight;");
+        }
+        catch { }
     }
 
     private string FormatMessage(string content)
@@ -152,5 +247,6 @@
         public string Content { get; set; } = "";
         public bool IsUser { get; set; }
         public bool IsLoading { get; set; }
+        public string? StatusText { get; set; }
     }
 }

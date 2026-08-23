@@ -118,8 +118,7 @@ public class LocalAiEngine : IChatService
             yield break;
         }
 
-        yield return "**";
-        await Task.Delay(400, cancellationToken);
+        await Task.Delay(300, cancellationToken);
 
         var smartResponse = await _evolution.GetSmartResponseAsync(userMessage, embedding, cancellationToken);
         foreach (var token in FormatStreamingText(smartResponse))
