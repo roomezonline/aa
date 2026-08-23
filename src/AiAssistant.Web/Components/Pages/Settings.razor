@@ -1,10 +1,11 @@
 ﻿@page "/settings"
 @using AiAssistant.Core.Interfaces
 @inject IKnowledgeBase KnowledgeBase
+@inject IEvolutionEngine EvolutionEngine
 
 <div class="page-container" style="overflow-y:auto;">
     <div class="info-card">
-        <h2 style="text-align:center; margin-bottom:20px; font-size:1.2rem;">&#9881; تنظیمات</h2>
+        <h2 style="text-align:center; margin-bottom:20px; font-size:1.2rem;">تنظیمات</h2>
 
         <div class="stat-grid">
             <div class="stat-card">
@@ -12,8 +13,16 @@
                 <div class="label">دانش ذخیره شده</div>
             </div>
             <div class="stat-card">
+                <div class="value">@_queueCount</div>
+                <div class="label">در نوبت یادگیری</div>
+            </div>
+            <div class="stat-card">
                 <div class="value">@_dbSize</div>
                 <div class="label">حجم دیتابیس</div>
+            </div>
+            <div class="stat-card">
+                <div class="value">فعال</div>
+                <div class="label">موتور تکامل</div>
             </div>
         </div>
     </div>
@@ -38,8 +47,15 @@
             <li>
                 <span class="icon">&#129302;</span>
                 <div>
-                    <div class="primary">وضعیت</div>
-                    <div class="secondary">مستقل - بدون وابستگی</div>
+                    <div class="primary">موتور تکامل</div>
+                    <div class="secondary">یادگیری خودکار از چت و اینترنت</div>
+                </div>
+            </li>
+            <li>
+                <span class="icon">&#128161;</span>
+                <div>
+                    <div class="primary">یادگیری</div>
+                    <div class="secondary">خودکار از هر مکالمه</div>
                 </div>
             </li>
         </ul>
@@ -48,11 +64,18 @@
 
 @code {
     private int _knowledgeCount;
+    private int _queueCount;
     private string _dbSize = "...";
 
     protected override async Task OnInitializedAsync()
     {
-        _knowledgeCount = await KnowledgeBase.GetTotalCountAsync();
+        try
+        {
+            _knowledgeCount = await KnowledgeBase.GetTotalCountAsync();
+            _queueCount = await EvolutionEngine.GetQueueCountAsync();
+        }
+        catch { }
+
         try
         {
             var fi = new System.IO.FileInfo("AiAssistant.db");

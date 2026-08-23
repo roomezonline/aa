@@ -30,6 +30,10 @@ builder.Services.AddScoped<IVectorStore>(sp => new SqliteVectorStore(settings.Da
 builder.Services.AddScoped<IKnowledgeBase, KnowledgeService>();
 builder.Services.AddScoped<IChatService, LocalAiEngine>();
 builder.Services.AddScoped<ISelfLearner, SelfLearnerService>();
+builder.Services.AddScoped<IEvolutionEngine, EvolutionEngine>();
+builder.Services.AddScoped<Func<IEvolutionEngine>>(sp => () => sp.GetRequiredService<IEvolutionEngine>());
+
+builder.Services.AddHostedService<EvolutionBackgroundService>();
 
 var app = builder.Build();
 
