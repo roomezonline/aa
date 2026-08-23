@@ -122,16 +122,9 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-app.MapGet("/auth/google", async (HttpContext httpContext, SignInManager<IdentityUser> signInManager) =>
+app.MapGet("/auth/google", (HttpContext httpContext) =>
 {
-    if (string.IsNullOrEmpty(googleClientId))
-        return Results.Redirect("/login");
-
-    await httpContext.ChallengeAsync(GoogleDefaults.AuthenticationScheme, new()
-    {
-        RedirectUri = "/"
-    });
-    return Results.Empty;
+    return Results.Redirect("/login");
 });
 
 app.MapGet("/auth/guest", async (SignInManager<IdentityUser> signInManager) =>
