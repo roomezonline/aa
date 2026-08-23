@@ -33,9 +33,8 @@ builder.Services.AddScoped<ISelfLearner, SelfLearnerService>();
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+using (var context = new AppDbContext(settings.DatabasePath))
 {
-    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     context.Database.EnsureCreated();
 }
 
