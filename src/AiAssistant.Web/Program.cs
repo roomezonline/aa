@@ -13,6 +13,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+builder.Services.AddRazorPages();
+
 builder.Services.Configure<AiSettings>(
     builder.Configuration.GetSection("AiSettings"));
 
