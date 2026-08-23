@@ -51,15 +51,22 @@ builder.Services.AddAuthentication(options =>
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
 })
-.AddCookie()
-.AddGoogle(options =>
+.AddCookie();
+
+var googleClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
+var googleClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
+
+if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientSecret))
 {
-    options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
-    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
-    options.SaveTokens = true;
-    options.Scope.Add("email");
-    options.Scope.Add("profile");
-});
+    builder.Services.AddAuthentication().AddGoogle(options =>
+    {
+        options.ClientId = googleClientId;
+        options.ClientSecret = googleClientSecret;
+        options.SaveTokens = true;
+        options.Scope.Add("email");
+        options.Scope.Add("profile");
+    });
+}
 
 builder.Services.AddHttpClient<WebSearchService>(client =>
 {
@@ -118,9 +125,11 @@ app.MapPost("/logout", async (SignInManager<IdentityUser> signInManager) =>
     return Results.Redirect("/");
 });
 
-app.MapGet("/login", () => Results.Challenge(new()
+app.MapGet("/login", () =>
 {
-    RedirectUri = "/"
-}, new[] { GoogleDefaults.AuthenticationScheme }));
+    if (!string.IsNullOrEmpty(googleClientId))
+        return Results.Challenge(new() { RedirectUri = "/" }, new[] { GoogleDefaults.AuthenticationScheme });
+    return Results.Redirect("/");
+});
 
 app.Run();
