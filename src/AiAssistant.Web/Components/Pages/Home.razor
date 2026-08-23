@@ -5,10 +5,11 @@
 @inject IKnowledgeBase KnowledgeBase
 @inject IEmbeddingService EmbeddingService
 @inject IConversationManager ConversationManager
+@inject IJSRuntime JS
 
 <div class="page-container">
     <div class="chat-header">
-        <h2>?? ?? ?????? ??????</h2>
+        <h2>چت با دستیار هوشمند</h2>
     </div>
 
     <div class="chat-messages" @ref="messagesContainer">
@@ -16,8 +17,8 @@
         {
             <div style="text-align:center; padding:40px 20px; color:var(--text-secondary);">
                 <p style="font-size:2rem; margin-bottom:12px;">&#129302;</p>
-                <p style="font-size:1rem;">????! ?? ?????? ??? ?????? ??? ????.</p>
-                <p style="font-size:0.9rem; margin-top:8px;">?? ????? ????? ??????.</p>
+                <p style="font-size:1rem;">سلام! من دستیار هوش مصنوعی شما هستم.</p>
+                <p style="font-size:0.9rem; margin-top:8px;">هر سوالی دارید بپرسید.</p>
             </div>
         }
 
@@ -45,7 +46,7 @@
             <textarea @ref="inputRef"
                       @bind="_userInput"
                       @bind:event="oninput"
-                      placeholder="???? ??? ?? ???????..."
+                      placeholder="سوال خود را بنویسید..."
                       rows="1"
                       @onkeydown="HandleKeyDown"
                       disabled="@_isLoading"></textarea>
@@ -115,7 +116,7 @@
         }
         catch (Exception ex)
         {
-            loadingMsg.Content = "???: " + ex.Message;
+            loadingMsg.Content = "خطا: " + ex.Message;
             loadingMsg.IsLoading = false;
         }
         finally
@@ -130,7 +131,6 @@
     {
         if (e.Key == "Enter" && !e.ShiftKey)
         {
-
             await SendMessageAsync();
         }
     }
@@ -146,8 +146,6 @@
         var pipeline = new Markdig.MarkdownPipelineBuilder().Build();
         return Markdig.Markdown.ToHtml(content, pipeline);
     }
-
-    [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private class ChatMessageDisplay
     {

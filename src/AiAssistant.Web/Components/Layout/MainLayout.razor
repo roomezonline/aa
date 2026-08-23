@@ -1,10 +1,10 @@
 ﻿@inherits LayoutComponentBase
+@inject NavigationManager NavManager
 
 <div class="app-layout">
     <div class="app-bar">
         <button class="app-bar-icon" @onclick="ToggleSidebar">&#9776;</button>
         <h1>دستیار هوش مصنوعی</h1>
-        <button class="app-bar-icon" @onclick="GoHome">&#8962;</button>
     </div>
 
     <div class="sidebar-overlay @(SidebarOpen ? "open" : "")" @onclick="CloseSidebar"></div>
@@ -40,25 +40,15 @@
 @code {
     private bool SidebarOpen = false;
 
-    private void ToggleSidebar()
-    {
-        SidebarOpen = !SidebarOpen;
-    }
-
-    private void CloseSidebar()
-    {
-        SidebarOpen = false;
-    }
-
-    private void GoHome()
-    {
-        SidebarOpen = false;
-    }
+    private void ToggleSidebar() => SidebarOpen = !SidebarOpen;
+    private void CloseSidebar() => SidebarOpen = false;
 
     private string IsActive(string path)
     {
-        return NavManager.Uri.EndsWith(path) || (path == "/" && NavManager.Uri == NavManager.BaseUri) ? "active" : "";
+        var uri = NavManager.Uri;
+        var baseUri = NavManager.BaseUri.TrimEnd('/');
+        if (path == "/")
+            return uri.TrimEnd('/') == baseUri ? "active" : "";
+        return uri.Contains(path) ? "active" : "";
     }
-
-    [Inject] private NavigationManager NavManager { get; set; } = default!;
 }
