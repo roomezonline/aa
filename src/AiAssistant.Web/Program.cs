@@ -31,9 +31,11 @@ builder.Services.AddScoped<IKnowledgeBase, KnowledgeService>();
 builder.Services.AddScoped<IChatService, LocalAiEngine>();
 builder.Services.AddScoped<ISelfLearner, SelfLearnerService>();
 builder.Services.AddScoped<IEvolutionEngine, EvolutionEngine>();
-builder.Services.AddScoped<Func<IEvolutionEngine>>(sp => () => sp.GetRequiredService<IEvolutionEngine>());
 
-builder.Services.AddHostedService<EvolutionBackgroundService>();
+builder.Services.AddSingleton<IHostedService>(sp =>
+    new EvolutionBackgroundService(
+        sp.GetRequiredService<ILogger<EvolutionBackgroundService>>(),
+        settings.DatabasePath));
 
 var app = builder.Build();
 
