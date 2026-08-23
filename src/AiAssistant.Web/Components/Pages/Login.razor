@@ -1,0 +1,27 @@
+@page "/login"
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<IdentityUser> SignInManager
+@inject NavigationManager Nav
+
+<div class="page-container" style="justify-content:center; align-items:center;">
+    <div class="info-card" style="max-width:400px; text-align:center;">
+        <div style="font-size:3rem; margin-bottom:16px;">&#129302;</div>
+        <h2 style="margin-bottom:8px;">  </h2>
+        <p style="color:var(--text-secondary); margin-bottom:24px; font-size:0.9rem;">
+              .
+        </p>
+        <a href="/login-google" class="btn btn-primary" style="text-decoration:none;">
+             
+        </a>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (SignInManager.IsSignedIn(SignInManager.Context.User))
+        {
+            Nav.NavigateTo("/", true);
+        }
+    }
+}

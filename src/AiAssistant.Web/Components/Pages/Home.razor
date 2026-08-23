@@ -1,4 +1,4 @@
-@page "/"
+﻿@page "/"
 @using AiAssistant.Core.Interfaces
 @using AiAssistant.Core.Models
 @inject IChatService ChatService
@@ -9,16 +9,42 @@
 
 <div class="page-container">
     <div class="chat-header">
-        <h2>چت با دستیار هوشمند</h2>
+        <button class="app-bar-icon" @onclick="ToggleHistory" title="">&#128196;</button>
+        <h2>@_headerTitle</h2>
+        <button class="app-bar-icon" @onclick="NewChat" title="">+</button>
     </div>
+
+    @if (_showHistory)
+    {
+        <div class="history-panel">
+            <div class="history-panel-header">
+                <span></span>
+                <button class="close-btn" @onclick="ToggleHistory">&times;</button>
+            </div>
+            <div class="history-list">
+                @foreach (var conv in _conversations)
+                {
+                    <div class="history-item @(_currentConversationId == conv.Id ? "active" : "")"
+                         @onclick="() => LoadConversation(conv.Id, conv.Title)">
+                        <div class="history-title">@GetTitle(conv)</div>
+                        <div class="history-meta">@conv.MessageCount  - @FormatDate(conv.CreatedAt)</div>
+                    </div>
+                }
+                @if (!_conversations.Any())
+                {
+                    <div class="history-empty"> .</div>
+                }
+            </div>
+        </div>
+    }
 
     <div class="chat-messages" @ref="messagesContainer">
         @if (!_messages.Any())
         {
             <div style="text-align:center; padding:40px 20px; color:var(--text-secondary);">
                 <p style="font-size:2rem; margin-bottom:12px;">&#129302;</p>
-                <p style="font-size:1rem;">سلام! من دستیار هوش مصنوعی شما هستم.</p>
-                <p style="font-size:0.9rem; margin-top:8px;">هر سوالی دارید بپرسید.</p>
+                <p style="font-size:1rem;"> !   .</p>
+                <p style="font-size:0.9rem; margin-top:8px;">    .</p>
             </div>
         }
 
@@ -28,7 +54,38 @@
                 <div class="chat-bubble @(msg.IsUser ? "chat-bubble-user" : "chat-bubble-ai")">
                     @if (msg.IsLoading)
                     {
-                        @if (!string.IsNullOrEmpty(msg.StatusText))
+                        @if (msg.SearchProgress.Any())
+                        {
+                            <div class="search-progress">
+                                @if (!string.IsNullOrEmpty(msg.CurrentStatus))
+                                {
+                                    <div class="search-status-line">
+                                        <div class="thinking-spinner"></div>
+                                        <span>@msg.CurrentStatus</span>
+                                    </div>
+                                }
+                                @foreach (var item in msg.SearchProgress.TakeLast(6))
+                                {
+                                    <div class="search-result-item @(item.StartsWith("q:") ? "is-query" : "is-result")">
+                                        @if (item.StartsWith("q:"))
+                                        {
+                                            <span class="search-icon">&#128269;</span>
+                                            <span>@item.Substring(2)</span>
+                                        }
+                                        else if (item.StartsWith("t:"))
+                                        {
+                                            <span class="result-icon">&#128196;</span>
+                                            <span>@item.Substring(2)</span>
+                                        }
+                                        else if (item.StartsWith("s:"))
+                                        {
+                                            <span class="snippet-text">@item.Substring(2)</span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else if (!string.IsNullOrEmpty(msg.StatusText))
                         {
                             <div class="thinking-status">
                                 <div class="thinking-spinner"></div>
@@ -49,9 +106,7 @@
                 </div>
                 @if (msg.IsLoading && !msg.IsUser)
                 {
-                    <button class="stop-btn" @onclick="StopGeneration" title="توقف">
-                        &#9632;
-                    </button>
+                    <button class="stop-btn" @onclick="StopGeneration" title="">&#9632;</button>
                 }
             </div>
         }
@@ -62,21 +117,17 @@
             <textarea @ref="inputRef"
                       @bind="_userInput"
                       @bind:event="oninput"
-                      placeholder="سوال خود را بنویسید..."
+                      placeholder="     ..."
                       rows="1"
                       @onkeydown="HandleKeyDown"
                       disabled="@_isLoading"></textarea>
             @if (_isLoading)
             {
-                <button class="send-btn stop" @onclick="StopGeneration" title="توقف">
-                    &#9632;
-                </button>
+                <button class="send-btn stop" @onclick="StopGeneration" title="">&#9632;</button>
             }
             else
             {
-                <button class="send-btn" @onclick="SendMessageAsync" disabled="@_isLoading || string.IsNullOrWhiteSpace(_userInput)">
-                    &#10148;
-                </button>
+                <button class="send-btn" @onclick="SendMessageAsync" disabled="@string.IsNullOrWhiteSpace(_userInput)">&#10148;</button>
             }
         </div>
     </div>
@@ -87,14 +138,66 @@
     private ElementReference inputRef;
     private string _userInput = string.Empty;
     private bool _isLoading;
-    private string _conversationId = string.Empty;
+    private string _currentConversationId = string.Empty;
+    private string _headerTitle = "  ";
+    private bool _showHistory;
     private List<ChatMessageDisplay> _messages = new();
+    private List<ConversationInfo> _conversations = new();
     private CancellationTokenSource? _cts;
 
     protected override async Task OnInitializedAsync()
     {
-        _conversationId = await ConversationManager.CreateConversationAsync();
+        _currentConversationId = await ConversationManager.CreateConversationAsync("", "");
+        await LoadConversationsAsync();
     }
+
+    private async Task LoadConversationsAsync()
+    {
+        try
+        {
+            _conversations = await ConversationManager.GetAllConversationsAsync("");
+        }
+        catch { }
+    }
+
+    private async Task LoadConversation(string conversationId, string title)
+    {
+        _currentConversationId = conversationId;
+        _headerTitle = GetTitleFromRaw(title);
+        _showHistory = false;
+        _messages.Clear();
+
+        try
+        {
+            var history = await ConversationManager.GetHistoryAsync(conversationId, 100);
+            foreach (var msg in history)
+            {
+                _messages.Add(new ChatMessageDisplay
+                {
+                    Content = msg.Content,
+                    IsUser = msg.Role == "user",
+                    IsLoading = false
+                });
+            }
+        }
+        catch { }
+
+        StateHasChanged();
+        await ScrollToBottom();
+        await FocusInputAsync();
+    }
+
+    private async Task NewChat()
+    {
+        _currentConversationId = await ConversationManager.CreateConversationAsync("", "");
+        _headerTitle = "  ";
+        _messages.Clear();
+        _showHistory = false;
+        StateHasChanged();
+        await FocusInputAsync();
+    }
+
+    private void ToggleHistory() => _showHistory = !_showHistory;
 
     private async Task SendMessageAsync()
     {
@@ -105,6 +208,11 @@
 
         _messages.Add(new ChatMessageDisplay { Content = userMessage, IsUser = true });
 
+        if (_messages.Count == 1)
+        {
+            _headerTitle = userMessage.Length > 30 ? userMessage.Substring(0, 30) + "..." : userMessage;
+        }
+
         _isLoading = true;
         _cts = new CancellationTokenSource();
         StateHasChanged();
@@ -114,7 +222,7 @@
             Content = "",
             IsUser = false,
             IsLoading = true,
-            StatusText = "در حال فکر کردن..."
+            StatusText = "  ..."
         };
         _messages.Add(loadingMsg);
 
@@ -122,19 +230,52 @@
 
         try
         {
-            UpdateStatus(loadingMsg, "در حال جستجو...");
-            await Task.Delay(100, _cts.Token);
-
             var sb = new System.Text.StringBuilder();
             bool gotFirstToken = false;
 
-            await foreach (var token in ChatService.StreamChatAsync(userMessage, _conversationId, _cts.Token))
+            await foreach (var token in ChatService.StreamChatAsync(userMessage, _currentConversationId, _cts.Token))
             {
                 if (_cts.Token.IsCancellationRequested) break;
 
+                if (token.StartsWith("@@status:"))
+                {
+                    loadingMsg.CurrentStatus = token.Substring("@@status:".Length);
+                    loadingMsg.StatusText = "";
+                    StateHasChanged();
+                    continue;
+                }
+
+                if (token.StartsWith("@@search:"))
+                {
+                    var query = token.Substring("@@search:".Length);
+                    loadingMsg.SearchProgress.Add("q:" + query);
+                    loadingMsg.CurrentStatus = ": " + query;
+                    StateHasChanged();
+                    continue;
+                }
+
+                if (token.StartsWith("@@result:"))
+                {
+                    var data = token.Substring("@@result:".Length);
+                    var sepIdx = data.IndexOf('|');
+                    var title = sepIdx > 0 ? data.Substring(0, sepIdx) : data;
+                    var snippet = sepIdx > 0 ? data.Substring(sepIdx + 1) : "";
+
+                    loadingMsg.SearchProgress.Add("t:" + title);
+                    if (!string.IsNullOrWhiteSpace(snippet))
+                        loadingMsg.SearchProgress.Add("s:" + snippet);
+
+                    loadingMsg.CurrentStatus = ": " + title;
+                    StateHasChanged();
+                    await ScrollToBottom();
+                    continue;
+                }
+
                 if (!gotFirstToken)
                 {
-                    loadingMsg.StatusText = "در حال نوشتن...";
+                    loadingMsg.SearchProgress.Clear();
+                    loadingMsg.CurrentStatus = "";
+                    loadingMsg.StatusText = "  ...";
                     StateHasChanged();
                     gotFirstToken = true;
                     await Task.Delay(200, _cts.Token);
@@ -149,11 +290,11 @@
 
             loadingMsg.Content = sb.ToString();
             loadingMsg.IsLoading = false;
+            loadingMsg.CurrentStatus = "";
+            loadingMsg.SearchProgress.Clear();
 
             if (string.IsNullOrWhiteSpace(loadingMsg.Content))
-            {
-                loadingMsg.Content = "پاسخی دریافت نشد. لطفاً دوباره تلاش کنید.";
-            }
+                loadingMsg.Content = " .";
 
             try
             {
@@ -169,22 +310,19 @@
                 });
             }
             catch { }
+
+            await LoadConversationsAsync();
         }
         catch (OperationCanceledException)
         {
-            if (!string.IsNullOrWhiteSpace(loadingMsg.Content))
-            {
-                loadingMsg.Content += "\n\n*توقف داده شد*";
-            }
-            else
-            {
-                loadingMsg.Content = "*توقف داده شد*";
-            }
+            loadingMsg.Content = string.IsNullOrWhiteSpace(loadingMsg.Content)
+                ? "*  *"
+                : loadingMsg.Content + "\n\n*  *";
             loadingMsg.IsLoading = false;
         }
         catch (Exception ex)
         {
-            loadingMsg.Content = "خطا: " + ex.Message;
+            loadingMsg.Content = ": " + ex.Message;
             loadingMsg.IsLoading = false;
         }
         finally
@@ -196,44 +334,24 @@
         }
     }
 
-    private void StopGeneration()
-    {
-        _cts?.Cancel();
-    }
-
-    private void UpdateStatus(ChatMessageDisplay msg, string status)
-    {
-        msg.StatusText = status;
-        StateHasChanged();
-    }
+    private void StopGeneration() => _cts?.Cancel();
 
     private async Task FocusInputAsync()
     {
         await Task.Delay(100);
-        try
-        {
-            await JS.InvokeVoidAsync("eval", "document.querySelector('.chat-input textarea')?.focus()");
-        }
-        catch { }
+        try { await JS.InvokeVoidAsync("eval", "document.querySelector('.chat-input textarea')?.focus()"); } catch { }
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Enter" && !e.ShiftKey && !_isLoading)
-        {
             await SendMessageAsync();
-        }
     }
 
     private async Task ScrollToBottom()
     {
         await Task.Delay(50);
-        try
-        {
-            await JS.InvokeVoidAsync("eval",
-                "var c = document.querySelector('.chat-messages'); if(c) c.scrollTop = c.scrollHeight;");
-        }
-        catch { }
+        try { await JS.InvokeVoidAsync("eval", "var c = document.querySelector('.chat-messages'); if(c) c.scrollTop = c.scrollHeight;"); } catch { }
     }
 
     private string FormatMessage(string content)
@@ -242,11 +360,37 @@
         return Markdig.Markdown.ToHtml(content, pipeline);
     }
 
+    private string GetTitle(ConversationInfo conv)
+    {
+        if (string.IsNullOrWhiteSpace(conv.Title) || conv.Title == " ")
+            return " " + FormatDate(conv.CreatedAt);
+        return conv.Title;
+    }
+
+    private string GetTitleFromRaw(string title)
+    {
+        if (string.IsNullOrWhiteSpace(title) || title == " ")
+            return "  ";
+        return title;
+    }
+
+    private string FormatDate(DateTime date)
+    {
+        var diff = DateTime.UtcNow - date;
+        if (diff.TotalMinutes < 1) return "";
+        if (diff.TotalHours < 1) return ((int)diff.TotalMinutes) + "  ";
+        if (diff.TotalDays < 1) return ((int)diff.TotalHours) + "  ";
+        if (diff.TotalDays < 7) return ((int)diff.TotalDays) + "  ";
+        return date.ToString("MM/dd");
+    }
+
     private class ChatMessageDisplay
     {
         public string Content { get; set; } = "";
         public bool IsUser { get; set; }
         public bool IsLoading { get; set; }
         public string? StatusText { get; set; }
+        public string? CurrentStatus { get; set; }
+        public List<string> SearchProgress { get; set; } = new();
     }
 }

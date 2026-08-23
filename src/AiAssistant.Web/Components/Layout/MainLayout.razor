@@ -1,10 +1,24 @@
 ﻿@inherits LayoutComponentBase
 @inject NavigationManager NavManager
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<IdentityUser> SignInManager
+@inject UserManager<IdentityUser> UserManager
 
 <div class="app-layout">
     <div class="app-bar">
         <button class="app-bar-icon" @onclick="ToggleSidebar">&#9776;</button>
         <h1>دستیار هوش مصنوعی</h1>
+        @if (_isLoggedIn)
+        {
+            <div class="user-info">
+                <span class="user-name">@_userName</span>
+                <button class="app-bar-icon" @onclick="Logout" title="خروج">&#10140;</button>
+            </div>
+        }
+        else
+        {
+            <a class="app-bar-icon" href="/login" title="ورود" style="text-decoration:none;">&#128100;</a>
+        }
     </div>
 
     <div class="sidebar-overlay @(SidebarOpen ? "open" : "")" @onclick="CloseSidebar"></div>
@@ -30,6 +44,18 @@
                 <span>تنظیمات</span>
             </a>
         </div>
+        @if (_isLoggedIn)
+        {
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <span class="user-avatar">&#128100;</span>
+                    <div>
+                        <div class="user-display-name">@_userName</div>
+                        <div class="user-email">@_userEmail</div>
+                    </div>
+                </div>
+            </div>
+        }
     </nav>
 
     <div class="main-content">
@@ -39,6 +65,34 @@
 
 @code {
     private bool SidebarOpen = false;
+    private bool _isLoggedIn;
+    private string _userName = "";
+    private string _userEmail = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckAuthAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await CheckAuthAsync();
+    }
+
+    private async Task CheckAuthAsync()
+    {
+        try
+        {
+            var user = await UserManager.GetUserAsync(SignInManager.Context.User);
+            _isLoggedIn = user != null;
+            _userName = user?.UserName ?? "";
+            _userEmail = user?.Email ?? "";
+        }
+        catch
+        {
+            _isLoggedIn = false;
+        }
+    }
 
     private void ToggleSidebar() => SidebarOpen = !SidebarOpen;
     private void CloseSidebar() => SidebarOpen = false;
@@ -50,5 +104,10 @@
         if (path == "/")
             return uri.TrimEnd('/') == baseUri ? "active" : "";
         return uri.Contains(path) ? "active" : "";
+    }
+
+    private async Task Logout()
+    {
+        NavManager.NavigateTo("/logout", forceLoad: true);
     }
 }

@@ -2,15 +2,11 @@ namespace AiAssistant.Core.Interfaces;
 
 public interface IConversationManager
 {
-    Task<string> CreateConversationAsync(string title = "");
-    Task AddMessageAsync(
-        string conversationId, 
-        string role, 
-        string content);
-    Task<List<ConversationMessage>> GetHistoryAsync(
-        string conversationId, 
-        int maxMessages = 20);
-    Task<List<ConversationInfo>> GetAllConversationsAsync();
+    Task<string> CreateConversationAsync(string userId, string title = "");
+    Task AddMessageAsync(string conversationId, string role, string content);
+    Task<List<ConversationMessage>> GetHistoryAsync(string conversationId, int maxMessages = 20);
+    Task<List<ConversationInfo>> GetAllConversationsAsync(string userId);
+    Task<ConversationInfo?> GetConversationAsync(string conversationId);
 }
 
 public class ConversationMessage

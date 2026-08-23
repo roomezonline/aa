@@ -1,0 +1,93 @@
+@using AiAssistant.Core.Interfaces
+@inject IConversationManager ConversationManager
+
+<div class="chat-history @(IsOpen ? "open" : "")">
+    <div class="chat-history-header">
+        <h3>مکالمات</h3>
+        <button class="new-chat-btn" @onclick="OnNewChat">
+            <span>+</span>
+            <span>جدید</span>
+        </button>
+    </div>
+
+    <div class="chat-history-list">
+        @if (_conversations.Any())
+        {
+            @foreach (var conv in _conversations)
+            {
+                <div class="chat-history-item @(conv.Id == ActiveId ? "active" : "")"
+                     @onclick="() => OnSelectConversation(conv.Id)">
+                    <div class="chat-history-title">@GetTitle(conv)</div>
+                    <div class="chat-history-meta">
+                        <span>@conv.MessageCount پیام</span>
+                        <span>@FormatDate(conv.CreatedAt)</span>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="chat-history-empty">
+                <p>هنوز مکالمه‌ای ندارید.</p>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public string? ActiveId { get; set; }
+    [Parameter] public EventCallback<string> OnConversationSelected { get; set; }
+    [Parameter] public EventCallback OnNewChatRequested { get; set; }
+
+    private List<ConversationInfo> _conversations = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadConversationsAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadConversationsAsync();
+    }
+
+    public async Task LoadConversationsAsync()
+    {
+        try
+        {
+            _conversations = await ConversationManager.GetAllConversationsAsync("");
+        }
+        catch { }
+        StateHasChanged();
+    }
+
+    private async Task OnSelectConversation(string id)
+    {
+        ActiveId = id;
+        await OnConversationSelected.InvokeAsync(id);
+    }
+
+    private async Task OnNewChat()
+    {
+        ActiveId = null;
+        await OnNewChatRequested.InvokeAsync();
+    }
+
+    private string GetTitle(ConversationInfo conv)
+    {
+        if (string.IsNullOrWhiteSpace(conv.Title) || conv.Title == "مکالمه جدید")
+            return $"مکالمه {FormatDate(conv.CreatedAt)}";
+        return conv.Title;
+    }
+
+    private string FormatDate(DateTime date)
+    {
+        var diff = DateTime.UtcNow - date;
+        if (diff.TotalMinutes < 1) return "الان";
+        if (diff.TotalHours < 1) return $"{(int)diff.TotalMinutes} دقیقه پیش";
+        if (diff.TotalDays < 1) return $"{(int)diff.TotalHours} ساعت پیش";
+        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays} روز پیش";
+        return date.ToString("MM/dd");
+    }
+}

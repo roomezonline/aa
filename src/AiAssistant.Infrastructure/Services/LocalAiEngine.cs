@@ -85,23 +85,6 @@ public class LocalAiEngine : IChatService
                 if (cancellationToken.IsCancellationRequested) yield break;
                 yield return token;
             }
-
-            if (detectedPattern == "weather")
-            {
-                yield return "\n\n";
-                var searchResults = await _searchService.SearchAsync($"آب و هوا {userMessage}", 3);
-                if (searchResults.Any())
-                {
-                    foreach (var r in searchResults.Take(2))
-                    {
-                        foreach (var token in FormatStreamingText($"- **{r.Title}**: {r.Snippet}\n"))
-                        {
-                            if (cancellationToken.IsCancellationRequested) yield break;
-                            yield return token;
-                        }
-                    }
-                }
-            }
             yield break;
         }
 
@@ -118,14 +101,140 @@ public class LocalAiEngine : IChatService
             yield break;
         }
 
+        yield return "@@status:در حال جستجو در اینترنت...";
         await Task.Delay(300, cancellationToken);
 
-        var smartResponse = await _evolution.GetSmartResponseAsync(userMessage, embedding, cancellationToken);
-        foreach (var token in FormatStreamingText(smartResponse))
+        List<SearchResult> allResults = new();
+        var queries = GenerateSearchQueries(userMessage);
+
+        foreach (var query in queries)
+        {
+            if (cancellationToken.IsCancellationRequested) yield break;
+
+            yield return $"@@search:{query}";
+            await Task.Delay(200, cancellationToken);
+
+            var results = await SearchSafeAsync(query, 3, cancellationToken);
+            if (results.Any())
+            {
+                allResults.AddRange(results);
+                foreach (var r in results.Take(2))
+                {
+                    yield return $"@@result:{r.Title}|{Truncate(r.Snippet, 120)}";
+                    await Task.Delay(150, cancellationToken);
+                }
+            }
+        }
+
+        if (!allResults.Any())
+        {
+            foreach (var token in FormatStreamingText($"متأسفانه نتیجه‌ای برای «{userMessage}» پیدا نکردم. لطفاً سوال خود را با کلمات دیگری مطرح کنید."))
+            {
+                if (cancellationToken.IsCancellationRequested) yield break;
+                yield return token;
+            }
+            yield break;
+        }
+
+        yield return "@@status:در حال تحلیل و جمع‌بندی نتایج...";
+        await Task.Delay(500, cancellationToken);
+
+        var finalAnswer = CompileBestAnswer(userMessage, allResults);
+
+        foreach (var token in FormatStreamingText(finalAnswer))
         {
             if (cancellationToken.IsCancellationRequested) yield break;
             yield return token;
         }
+
+        await SaveKnowledgeSafeAsync(userMessage, finalAnswer, embedding);
+    }
+
+    private async Task<List<SearchResult>> SearchSafeAsync(string query, int maxResults, CancellationToken ct)
+    {
+        try
+        {
+            return await _searchService.SearchAsync(query, maxResults, ct);
+        }
+        catch
+        {
+            return new List<SearchResult>();
+        }
+    }
+
+    private async Task SaveKnowledgeSafeAsync(string question, string answer, float[] embedding)
+    {
+        try
+        {
+            await _knowledgeBase.SaveAsync(new KnowledgeEntry
+            {
+                Question = question,
+                Answer = answer,
+                Source = "evolution_search",
+                Embedding = embedding,
+                Confidence = 0.85,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+        catch { }
+    }
+
+    private List<string> GenerateSearchQueries(string userMessage)
+    {
+        var queries = new List<string> { userMessage };
+
+        var words = userMessage.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (words.Length > 3)
+        {
+            var shortQuery = string.Join(" ", words.Take(4));
+            if (shortQuery != userMessage)
+                queries.Add(shortQuery);
+        }
+
+        if (userMessage.Contains("چیست") || userMessage.Contains("چیه"))
+        {
+            queries.Add(userMessage.Replace("چیست", "").Replace("چیه", "").Trim());
+        }
+
+        if (userMessage.Contains("مقایسه") || userMessage.Contains("vs") || userMessage.Contains("یا"))
+        {
+            queries.Add(userMessage + " مزایای معایب");
+        }
+
+        return queries.Take(3).ToList();
+    }
+
+    private static string CompileBestAnswer(string question, List<SearchResult> results)
+    {
+        var uniqueResults = results
+            .GroupBy(r => r.Title)
+            .Select(g => g.First())
+            .Take(5)
+            .ToList();
+
+        var answer = "";
+
+        if (uniqueResults.Count > 1)
+        {
+            answer += $"بر اساس {uniqueResults.Count} منبع مختلف:\n\n";
+        }
+
+        foreach (var r in uniqueResults)
+        {
+            var snippet = r.Snippet;
+            if (!snippet.EndsWith(".") && !snippet.EndsWith("!") && !snippet.EndsWith("?"))
+                snippet += "...";
+
+            answer += $"**{r.Title}**\n{snippet}\n\n";
+        }
+
+        return answer.TrimEnd();
+    }
+
+    private static string Truncate(string text, int maxLen)
+    {
+        if (string.IsNullOrEmpty(text)) return "";
+        return text.Length <= maxLen ? text : text[..maxLen] + "...";
     }
 
     private async Task<string> GenerateFullResponseAsync(string userMessage)

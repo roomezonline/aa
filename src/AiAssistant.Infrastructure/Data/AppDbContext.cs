@@ -1,9 +1,10 @@
 using AiAssistant.Core.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace AiAssistant.Infrastructure.Data;
 
-public class AppDbContext : DbContext
+public class AppDbContext : IdentityDbContext
 {
     public DbSet<KnowledgeEntry> Knowledge => Set<KnowledgeEntry>();
     public DbSet<ConversationEntity> Conversations => Set<ConversationEntity>();
@@ -13,6 +14,10 @@ public class AppDbContext : DbContext
 
     private readonly string _dbPath;
 
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+    {
+    }
+
     public AppDbContext(string dbPath = "AiAssistant.db")
     {
         _dbPath = dbPath;
@@ -20,11 +25,16 @@ public class AppDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseSqlite($"Data Source={_dbPath}");
+        if (!optionsBuilder.IsConfigured && !string.IsNullOrEmpty(_dbPath))
+        {
+            optionsBuilder.UseSqlite($"Data Source={_dbPath}");
+        }
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+
         modelBuilder.Entity<KnowledgeEntry>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -37,6 +47,7 @@ public class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Title).IsRequired();
+            entity.HasIndex(e => e.UserId);
         });
 
         modelBuilder.Entity<MessageEntity>(entity =>
