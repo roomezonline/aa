@@ -1,4 +1,4 @@
-﻿@page "/settings"
+@page "/settings"
 @using AiAssistant.Core.Interfaces
 @inject IKnowledgeBase KnowledgeBase
 @inject IEvolutionEngine EvolutionEngine
@@ -6,7 +6,6 @@
 <div class="page-container" style="overflow-y:auto;">
     <div class="info-card">
         <h2 style="text-align:center; margin-bottom:20px; font-size:1.2rem;">تنظیمات</h2>
-
         <div class="stat-grid">
             <div class="stat-card">
                 <div class="value">@_knowledgeCount</div>
@@ -26,7 +25,6 @@
             </div>
         </div>
     </div>
-
     <div class="info-card">
         <h3 style="margin-bottom:16px;">اطلاعات سیستم</h3>
         <ul class="info-list">
@@ -51,13 +49,6 @@
                     <div class="secondary">یادگیری خودکار از چت و اینترنت</div>
                 </div>
             </li>
-            <li>
-                <span class="icon">&#128161;</span>
-                <div>
-                    <div class="primary">یادگیری</div>
-                    <div class="secondary">خودکار از هر مکالمه</div>
-                </div>
-            </li>
         </ul>
     </div>
 </div>
@@ -69,18 +60,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            _knowledgeCount = await KnowledgeBase.GetTotalCountAsync();
-            _queueCount = await EvolutionEngine.GetQueueCountAsync();
-        }
-        catch { }
-
-        try
-        {
-            var fi = new System.IO.FileInfo("AiAssistant.db");
-            _dbSize = fi.Exists ? (fi.Length > 1048576 ? $"{fi.Length / 1048576.0:F1} MB" : $"{fi.Length / 1024.0:F1} KB") : "0 KB";
-        }
+        try { _knowledgeCount = await KnowledgeBase.GetTotalCountAsync(); _queueCount = await EvolutionEngine.GetQueueCountAsync(); } catch { }
+        try { var fi = new System.IO.FileInfo("AiAssistant.db"); _dbSize = fi.Exists ? (fi.Length > 1048576 ? $"{fi.Length / 1048576.0:F1} MB" : $"{fi.Length / 1024.0:F1} KB") : "0 KB"; }
         catch { _dbSize = "نامشخص"; }
     }
 }

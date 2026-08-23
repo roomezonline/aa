@@ -7,17 +7,17 @@
 <div class="app-layout">
     <div class="app-bar">
         <button class="app-bar-icon" @onclick="ToggleSidebar">&#9776;</button>
-        <h1>دستیار هوش مصنوعی</h1>
+        <h1>&#129302; دستیار هوش مصنوعی</h1>
         @if (_isLoggedIn)
         {
             <div class="user-info">
                 <span class="user-name">@_userName</span>
-                <a class="app-bar-icon" href="/logout" title="" style="text-decoration:none;">&#10140;</a>
+                <a class="app-bar-icon" href="/logout" title="خروج" style="text-decoration:none;">&#10140;</a>
             </div>
         }
         else
         {
-            <a class="app-bar-icon" href="/login" title="" style="text-decoration:none;">&#128100;</a>
+            <a class="app-bar-icon" href="/login" title="ورود" style="text-decoration:none;">&#128100;</a>
         }
     </div>
 
@@ -29,19 +29,19 @@
         <div class="sidebar-nav">
             <a class="nav-item @(IsActive("/"))" href="/" @onclick="CloseSidebar">
                 <span class="icon">&#128172;</span>
-                <span></span>
+                <span>چت</span>
             </a>
             <a class="nav-item @(IsActive("/learn"))" href="/learn" @onclick="CloseSidebar">
                 <span class="icon">&#127891;</span>
-                <span></span>
+                <span>یادگیری خودکار</span>
             </a>
             <a class="nav-item @(IsActive("/knowledge"))" href="/knowledge" @onclick="CloseSidebar">
                 <span class="icon">&#128218;</span>
-                <span></span>
+                <span>پایگاه دانش</span>
             </a>
             <a class="nav-item @(IsActive("/settings"))" href="/settings" @onclick="CloseSidebar">
                 <span class="icon">&#9881;</span>
-                <span></span>
+                <span>تنظیمات</span>
             </a>
         </div>
         @if (_isLoggedIn)

@@ -8,14 +8,12 @@
         <div class="login-logo">&#129302;</div>
         <h1 class="login-title">دستیار هوش مصنوعی</h1>
         <p class="login-subtitle">برای شروع وارد شوید</p>
-
         <div class="login-buttons">
             <a href="/auth/guest" class="login-btn guest-btn">
                 <span>&#128100;</span>
                 <span>ورود به عنوان مهمان</span>
             </a>
         </div>
-
         <p class="login-footer">با ورود، شما شرایط استفاده را می‌پذیرید.</p>
     </div>
 </div>
@@ -24,8 +22,6 @@
     protected override void OnInitialized()
     {
         if (SignInManager.IsSignedIn(SignInManager.Context.User))
-        {
             Nav.NavigateTo("/", true);
-        }
     }
 }

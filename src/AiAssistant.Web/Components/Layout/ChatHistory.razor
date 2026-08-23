@@ -9,7 +9,6 @@
             <span>جدید</span>
         </button>
     </div>
-
     <div class="chat-history-list">
         @if (_conversations.Any())
         {
@@ -27,9 +26,7 @@
         }
         else
         {
-            <div class="chat-history-empty">
-                <p>هنوز مکالمه‌ای ندارید.</p>
-            </div>
+            <div class="chat-history-empty"><p>هنوز مکالمه‌ای ندارید.</p></div>
         }
     </div>
 </div>
@@ -39,45 +36,23 @@
     [Parameter] public string? ActiveId { get; set; }
     [Parameter] public EventCallback<string> OnConversationSelected { get; set; }
     [Parameter] public EventCallback OnNewChatRequested { get; set; }
-
     private List<ConversationInfo> _conversations = new();
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadConversationsAsync();
-    }
-
-    protected override async Task OnParametersSetAsync()
-    {
-        await LoadConversationsAsync();
-    }
+    protected override async Task OnInitializedAsync() { await LoadConversationsAsync(); }
+    protected override async Task OnParametersSetAsync() { await LoadConversationsAsync(); }
 
     public async Task LoadConversationsAsync()
     {
-        try
-        {
-            _conversations = await ConversationManager.GetAllConversationsAsync("");
-        }
-        catch { }
+        try { _conversations = await ConversationManager.GetAllConversationsAsync(""); } catch { }
         StateHasChanged();
     }
 
-    private async Task OnSelectConversation(string id)
-    {
-        ActiveId = id;
-        await OnConversationSelected.InvokeAsync(id);
-    }
-
-    private async Task OnNewChat()
-    {
-        ActiveId = null;
-        await OnNewChatRequested.InvokeAsync();
-    }
+    private async Task OnSelectConversation(string id) { ActiveId = id; await OnConversationSelected.InvokeAsync(id); }
+    private async Task OnNewChat() { ActiveId = null; await OnNewChatRequested.InvokeAsync(); }
 
     private string GetTitle(ConversationInfo conv)
     {
-        if (string.IsNullOrWhiteSpace(conv.Title) || conv.Title == "مکالمه جدید")
-            return $"مکالمه {FormatDate(conv.CreatedAt)}";
+        if (string.IsNullOrWhiteSpace(conv.Title) || conv.Title == "مکالمه جدید") return "مکالمه " + FormatDate(conv.CreatedAt);
         return conv.Title;
     }
 
@@ -85,9 +60,9 @@
     {
         var diff = DateTime.UtcNow - date;
         if (diff.TotalMinutes < 1) return "الان";
-        if (diff.TotalHours < 1) return $"{(int)diff.TotalMinutes} دقیقه پیش";
-        if (diff.TotalDays < 1) return $"{(int)diff.TotalHours} ساعت پیش";
-        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays} روز پیش";
+        if (diff.TotalHours < 1) return ((int)diff.TotalMinutes) + " دقیقه پیش";
+        if (diff.TotalDays < 1) return ((int)diff.TotalHours) + " ساعت پیش";
+        if (diff.TotalDays < 7) return ((int)diff.TotalDays) + " روز پیش";
         return date.ToString("MM/dd");
     }
 }

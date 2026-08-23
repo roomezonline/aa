@@ -1,4 +1,4 @@
-﻿@page "/learn"
+@page "/learn"
 @using AiAssistant.Core.Interfaces
 @using AiAssistant.Core.Models
 @inject ISelfLearner SelfLearner
@@ -10,12 +10,10 @@
         <p style="text-align:center; color:var(--text-secondary); margin-bottom:24px;">
             موضوع مورد نظر را وارد کنید تا دستیار درباره آن تحقیق کند.
         </p>
-
         <div class="form-group">
             <label class="form-label">موضوع تحقیق</label>
             <input class="form-input" @bind="_topic" placeholder="مثلاً: هوش مصنوعی، برنامه‌نویسی..." />
         </div>
-
         <div class="form-group">
             <label class="form-label">مدت زمان</label>
             <select class="form-select" @bind="_durationMinutes">
@@ -24,21 +22,14 @@
                 <option value="30">۳۰ دقیقه</option>
             </select>
         </div>
-
         @if (!_isLearning)
         {
-            <button class="btn btn-primary" @onclick="StartLearningAsync">
-                شروع تحقیق
-            </button>
+            <button class="btn btn-primary" @onclick="StartLearningAsync">شروع تحقیق</button>
         }
         else
         {
-            <div class="progress-bar">
-                <div class="progress-bar-fill" style="width: 100%; animation: pulse 1.5s infinite;"></div>
-            </div>
-            <button class="btn btn-danger" @onclick="StopLearningAsync">
-                توقف
-            </button>
+            <div class="progress-bar"><div class="progress-bar-fill" style="width: 100%; animation: pulse 1.5s infinite;"></div></div>
+            <button class="btn btn-danger" @onclick="StopLearningAsync">توقف</button>
         }
     </div>
 
@@ -49,12 +40,9 @@
             @if (_queueCount > 0)
             {
                 <button class="btn btn-primary" style="width:auto; padding:8px 16px; font-size:0.85rem;"
-                        @onclick="StartAutoLearningAsync">
-                    یادگیری خودکار
-                </button>
+                        @onclick="StartAutoLearningAsync">یادگیری خودکار</button>
             }
         </div>
-
         @if (_pendingItems.Any())
         {
             <div class="log-container">
@@ -102,65 +90,32 @@
     private List<string> _logs = new();
     private CancellationTokenSource? _cts;
 
-    protected override async Task OnInitializedAsync()
-    {
-        await RefreshQueueAsync();
-    }
+    protected override async Task OnInitializedAsync() { await RefreshQueueAsync(); }
 
     private async Task RefreshQueueAsync()
     {
-        try
-        {
-            _queueCount = await EvolutionEngine.GetQueueCountAsync();
-            _pendingItems = await EvolutionEngine.GetPendingQueueAsync();
-        }
-        catch { }
+        try { _queueCount = await EvolutionEngine.GetQueueCountAsync(); _pendingItems = await EvolutionEngine.GetPendingQueueAsync(); } catch { }
         StateHasChanged();
     }
 
     private async Task StartLearningAsync()
     {
         if (string.IsNullOrWhiteSpace(_topic)) return;
-        _isLearning = true;
-        _logs.Clear();
-        _cts = new CancellationTokenSource();
-
-        var progress = new Progress<string>(log =>
-        {
-            _logs.Add(log);
-            InvokeAsync(StateHasChanged);
-        });
-
-        try
-        {
-            await SelfLearner.StartLearningAsync(_topic, TimeSpan.FromMinutes(_durationMinutes), progress, _cts.Token);
-        }
+        _isLearning = true; _logs.Clear(); _cts = new CancellationTokenSource();
+        var progress = new Progress<string>(log => { _logs.Add(log); InvokeAsync(StateHasChanged); });
+        try { await SelfLearner.StartLearningAsync(_topic, TimeSpan.FromMinutes(_durationMinutes), progress, _cts.Token); }
         catch (Exception ex) { _logs.Add("خطا: " + ex.Message); }
-        finally
-        {
-            _isLearning = false;
-            await RefreshQueueAsync();
-        }
+        finally { _isLearning = false; await RefreshQueueAsync(); }
     }
 
     private async Task StartAutoLearningAsync()
     {
-        _isLearning = true;
-        _logs.Add("شروع یادگیری خودکار...");
-        StateHasChanged();
-
+        _isLearning = true; _logs.Add("شروع یادگیری خودکار..."); StateHasChanged();
         _cts = new CancellationTokenSource();
-        try
-        {
-            await EvolutionEngine.StartEvolutionAsync(_cts.Token);
-        }
+        try { await EvolutionEngine.StartEvolutionAsync(_cts.Token); }
         catch (OperationCanceledException) { }
         catch (Exception ex) { _logs.Add("خطا: " + ex.Message); }
-        finally
-        {
-            _isLearning = false;
-            await RefreshQueueAsync();
-        }
+        finally { _isLearning = false; await RefreshQueueAsync(); }
     }
 
     private void StopLearningAsync() => _cts?.Cancel();
