@@ -12,23 +12,8 @@ public class AppDbContext : IdentityDbContext
     public DbSet<VectorDocumentEntity> VectorDocuments => Set<VectorDocumentEntity>();
     public DbSet<LearningQueueItem> LearningQueue => Set<LearningQueueItem>();
 
-    private readonly string _dbPath;
-
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
-    }
-
-    public AppDbContext(string dbPath = "AiAssistant.db")
-    {
-        _dbPath = dbPath;
-    }
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        if (!optionsBuilder.IsConfigured && !string.IsNullOrEmpty(_dbPath))
-        {
-            optionsBuilder.UseSqlite($"Data Source={_dbPath}");
-        }
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -21,9 +21,10 @@ var settings = builder.Configuration
     .Get<AiSettings>() ?? new AiSettings();
 
 var dbPath = settings.DatabasePath;
+var dbConnectionString = $"Data Source={dbPath}";
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite($"Data Source={dbPath}"));
+    options.UseSqlite(dbConnectionString));
 
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
@@ -63,7 +64,11 @@ builder.Services.AddHttpClient<WebSearchService>(client =>
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 
-builder.Services.AddScoped<Func<AppDbContext>>(sp => () => new AppDbContext(dbPath));
+builder.Services.AddScoped<Func<AppDbContext>>(sp =>
+{
+    var options = sp.GetRequiredService<Microsoft.EntityFrameworkCore.DbContextOptions<AppDbContext>>();
+    return () => new AppDbContext(options);
+});
 
 builder.Services.AddScoped<IConversationManager, ConversationService>();
 builder.Services.AddScoped<IEmbeddingService, SimpleEmbeddingService>();
@@ -77,12 +82,13 @@ builder.Services.AddScoped<IEvolutionEngine, EvolutionEngine>();
 builder.Services.AddSingleton<IHostedService>(sp =>
     new EvolutionBackgroundService(
         sp.GetRequiredService<ILogger<EvolutionBackgroundService>>(),
-        dbPath));
+        dbConnectionString));
 
 var app = builder.Build();
 
-using (var context = new AppDbContext(dbPath))
+using (var scope = app.Services.CreateScope())
 {
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     context.Database.EnsureCreated();
 }
 
@@ -103,7 +109,7 @@ app.MapRazorPages();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
- .AddAdditionalAssemblies(typeof(App).Assembly);
+    .AddAdditionalAssemblies(typeof(App).Assembly);
 
 app.MapPost("/logout", async (SignInManager<IdentityUser> signInManager) =>
 {

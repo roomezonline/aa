@@ -1,5 +1,6 @@
 using AiAssistant.Core.Interfaces;
 using AiAssistant.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -8,17 +9,14 @@ namespace AiAssistant.Infrastructure.Services;
 public class EvolutionBackgroundService : BackgroundService
 {
     private readonly ILogger<EvolutionBackgroundService> _logger;
-    private readonly string _dbPath;
-    private readonly int _delaySeconds;
+    private readonly string _connectionString;
 
     public EvolutionBackgroundService(
         ILogger<EvolutionBackgroundService> logger,
-        string dbPath = "AiAssistant.db",
-        int delaySeconds = 30)
+        string connectionString)
     {
         _logger = logger;
-        _dbPath = dbPath;
-        _delaySeconds = delaySeconds;
+        _connectionString = connectionString;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -31,7 +29,8 @@ public class EvolutionBackgroundService : BackgroundService
             {
                 var searchService = CreateSearchService();
                 var embeddingService = new SimpleEmbeddingService();
-                var knowledgeService = CreateKnowledgeService(embeddingService);
+                var knowledgeService = new KnowledgeService(
+                    CreateContext, new SqliteVectorStore(_connectionString), embeddingService);
                 var evolution = new EvolutionEngine(searchService, knowledgeService, embeddingService, CreateContext);
 
                 _logger.LogInformation("Evolution learning cycle started");
@@ -44,14 +43,20 @@ public class EvolutionBackgroundService : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Evolution learning cycle failed");
-                await Task.Delay(TimeSpan.FromSeconds(_delaySeconds), stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
             }
         }
 
         _logger.LogInformation("Evolution Engine stopped");
     }
 
-    private AppDbContext CreateContext() => new(_dbPath);
+    private AppDbContext CreateContext()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlite(_connectionString)
+            .Options;
+        return new AppDbContext(options);
+    }
 
     private WebSearchService CreateSearchService()
     {
@@ -59,10 +64,5 @@ public class EvolutionBackgroundService : BackgroundService
         client.DefaultRequestHeaders.Add("User-Agent",
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
         return new WebSearchService(client);
-    }
-
-    private KnowledgeService CreateKnowledgeService(IEmbeddingService embeddingService)
-    {
-        return new KnowledgeService(CreateContext, new SqliteVectorStore(_dbPath), embeddingService);
     }
 }
