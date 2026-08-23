@@ -21,8 +21,7 @@ builder.Services.AddHttpClient<WebSearchService>(client =>
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 
-builder.Services.AddScoped<AppDbContext>(_ => new AppDbContext(settings.DatabasePath));
-builder.Services.AddScoped<Func<AppDbContext>>(sp => () => sp.GetRequiredService<AppDbContext>());
+builder.Services.AddScoped<Func<AppDbContext>>(sp => () => new AppDbContext(settings.DatabasePath));
 
 builder.Services.AddScoped<IConversationManager, ConversationService>();
 builder.Services.AddScoped<IEmbeddingService, SimpleEmbeddingService>();
