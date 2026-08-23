@@ -12,12 +12,12 @@
         {
             <div class="user-info">
                 <span class="user-name">@_userName</span>
-                <button class="app-bar-icon" @onclick="Logout" title="خروج">&#10140;</button>
+                <a class="app-bar-icon" href="/logout" title="" style="text-decoration:none;">&#10140;</a>
             </div>
         }
         else
         {
-            <a class="app-bar-icon" href="/login" title="ورود" style="text-decoration:none;">&#128100;</a>
+            <a class="app-bar-icon" href="/login" title="" style="text-decoration:none;">&#128100;</a>
         }
     </div>
 
@@ -29,19 +29,19 @@
         <div class="sidebar-nav">
             <a class="nav-item @(IsActive("/"))" href="/" @onclick="CloseSidebar">
                 <span class="icon">&#128172;</span>
-                <span>چت</span>
+                <span></span>
             </a>
             <a class="nav-item @(IsActive("/learn"))" href="/learn" @onclick="CloseSidebar">
                 <span class="icon">&#127891;</span>
-                <span>یادگیری خودکار</span>
+                <span></span>
             </a>
             <a class="nav-item @(IsActive("/knowledge"))" href="/knowledge" @onclick="CloseSidebar">
                 <span class="icon">&#128218;</span>
-                <span>پایگاه دانش</span>
+                <span></span>
             </a>
             <a class="nav-item @(IsActive("/settings"))" href="/settings" @onclick="CloseSidebar">
                 <span class="icon">&#9881;</span>
-                <span>تنظیمات</span>
+                <span></span>
             </a>
         </div>
         @if (_isLoggedIn)
@@ -104,10 +104,5 @@
         if (path == "/")
             return uri.TrimEnd('/') == baseUri ? "active" : "";
         return uri.Contains(path) ? "active" : "";
-    }
-
-    private async Task Logout()
-    {
-        NavManager.NavigateTo("/logout", forceLoad: true);
     }
 }

@@ -3,6 +3,7 @@ using AiAssistant.Core.Interfaces;
 using AiAssistant.Infrastructure.Data;
 using AiAssistant.Infrastructure.Services;
 using AiAssistant.Web.Components;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Identity;
@@ -44,17 +45,19 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.LoginPath = "/login";
     options.LogoutPath = "/logout";
     options.AccessDeniedPath = "/login";
+    options.ExpireTimeSpan = TimeSpan.FromDays(365);
+    options.SlidingExpiration = true;
+    options.Cookie.Name = "AiAssistant.Auth";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.Lax;
 });
-
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
-})
-.AddCookie();
 
 var googleClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
 var googleClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
+
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie();
 
 if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientSecret))
 {
@@ -75,7 +78,7 @@ builder.Services.AddHttpClient<WebSearchService>(client =>
 
 builder.Services.AddScoped<Func<AppDbContext>>(sp =>
 {
-    var options = sp.GetRequiredService<Microsoft.EntityFrameworkCore.DbContextOptions<AppDbContext>>();
+    var options = sp.GetRequiredService<DbContextOptions<AppDbContext>>();
     return () => new AppDbContext(options);
 });
 
@@ -119,17 +122,48 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-app.MapPost("/logout", async (SignInManager<IdentityUser> signInManager) =>
+app.MapGet("/auth/google", async (HttpContext httpContext, SignInManager<IdentityUser> signInManager) =>
 {
-    await signInManager.SignOutAsync();
+    if (string.IsNullOrEmpty(googleClientId))
+        return Results.Redirect("/login");
+
+    await httpContext.ChallengeAsync(GoogleDefaults.AuthenticationScheme, new()
+    {
+        RedirectUri = "/"
+    });
+    return Results.Empty;
+});
+
+app.MapGet("/auth/guest", async (SignInManager<IdentityUser> signInManager) =>
+{
+    var guestEmail = $"guest-{Guid.NewGuid():N}@local";
+    var guestUser = new IdentityUser
+    {
+        UserName = "مهمان",
+        Email = guestEmail,
+        EmailConfirmed = true
+    };
+
+    var existingUser = await signInManager.UserManager.FindByEmailAsync(guestEmail);
+    if (existingUser == null)
+    {
+        await signInManager.UserManager.CreateAsync(guestUser);
+    }
+
+    await signInManager.SignInAsync(guestUser ?? existingUser!, isPersistent: true);
     return Results.Redirect("/");
 });
 
-app.MapGet("/login", () =>
+app.MapGet("/logout", async (SignInManager<IdentityUser> signInManager) =>
 {
-    if (!string.IsNullOrEmpty(googleClientId))
-        return Results.Challenge(new() { RedirectUri = "/" }, new[] { GoogleDefaults.AuthenticationScheme });
-    return Results.Redirect("/");
+    await signInManager.SignOutAsync();
+    return Results.Redirect("/login");
+});
+
+app.MapPost("/logout", async (SignInManager<IdentityUser> signInManager) =>
+{
+    await signInManager.SignOutAsync();
+    return Results.Redirect("/login");
 });
 
 app.Run();
